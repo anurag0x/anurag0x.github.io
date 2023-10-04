@@ -28,7 +28,7 @@ darkmode.onclick = () => {
 
 document.getElementById("resume-link-1").addEventListener("click", () => {
   window.open(
-    "https://drive.google.com/file/d/1py8AI2OVIQH2Df62JaA0oFAhTADB2nFq/view?usp=sharing",
+    "https://drive.google.com/file/d/1uLv_sTlL_DsrcDcB8-7-_G__PlFuNxLK/view?usp=sharing",
     "_blank"
   );
 });
@@ -36,14 +36,14 @@ document.getElementById("resume-link-1").addEventListener("click", () => {
 document.getElementById("resume-link-2").addEventListener("click", () => {
   // console.log("OPENinig.....");
   window.open(
-    "https://drive.google.com/file/d/1py8AI2OVIQH2Df62JaA0oFAhTADB2nFq/view?usp=sharing",
+    "https://drive.google.com/file/d/1uLv_sTlL_DsrcDcB8-7-_G__PlFuNxLK/view?usp=sharing",
     "_blank"
   );
 });
 document.getElementById("resume-link-3").addEventListener("click", () => {
   // console.log("OPENinig.....");
   window.open(
-    "https://drive.google.com/file/d/1py8AI2OVIQH2Df62JaA0oFAhTADB2nFq/view?usp=sharing",
+    "https://drive.google.com/file/d/1uLv_sTlL_DsrcDcB8-7-_G__PlFuNxLK/view?usp=sharing",
     "_blank"
   );
 });
