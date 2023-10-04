@@ -218,6 +218,7 @@ header.shadow {
 
 .information {
     margin: 1rem 0 1.4rem;
+    padding-left:40%;
 }
 
 .information .info-box {
