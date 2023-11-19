@@ -420,10 +420,11 @@ span {
 }
 
 #contact>.information{
-display:flex;
-flex-direction:column;
-        justify-content:center;
-align-items:center
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
 }
 
 form input,
@@ -448,19 +449,7 @@ form textarea {
     height: 200px;
 }
 
-.contact-button {
-    width: 160px;
-    background: #2768d9;
-    color: #fff;
-    justify-content: center;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-left: 35%;
-}
 
-.contact-button:hover {
-    background: var(--hover);
-}
 
 .footer {
     display: grid;
@@ -594,9 +583,7 @@ form textarea {
     grid-template-columns: 1fr;
     }
 
- 
-
- 
+    
     #git-stat > div > img {
         width: 90%;
         background-color: black;
@@ -636,6 +623,8 @@ form textarea {
     font-size: 1rem;
     }
 
+   
+    
 }
 
 @media screen and (min-width: 300px) and (max-width: 499px) {
