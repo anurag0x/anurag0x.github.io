@@ -91,20 +91,91 @@ export async function askGemini(env, contents, fetchImpl = fetch) {
   return text.replace(/[*_#`>]/g, "").replace(/\s+/g, " ").trim();
 }
 
+/* ---------------- natural voice (Gemini text-to-speech) ---------------- */
+const MAX_SPEAK = 700;
+const STYLE = "Read this aloud as Uli, a warm, friendly young Indian woman speaking natural Indian English with a light Hindi accent, relaxed and conversational, like talking to a friend:";
+
+// Gemini returns raw 16-bit mono PCM; wrap it in a WAV header so browsers can play it.
+export function pcmToWav(pcm, rate = 24000) {
+  const h = new DataView(new ArrayBuffer(44));
+  const w = (o, s) => [...s].forEach((c, i) => h.setUint8(o + i, c.charCodeAt(0)));
+  w(0, "RIFF"); h.setUint32(4, 36 + pcm.length, true); w(8, "WAVE"); w(12, "fmt ");
+  h.setUint32(16, 16, true); h.setUint16(20, 1, true); h.setUint16(22, 1, true);
+  h.setUint32(24, rate, true); h.setUint32(28, rate * 2, true); h.setUint16(32, 2, true); h.setUint16(34, 16, true);
+  w(36, "data"); h.setUint32(40, pcm.length, true);
+  const out = new Uint8Array(44 + pcm.length);
+  out.set(new Uint8Array(h.buffer), 0); out.set(pcm, 44);
+  return out;
+}
+
+export async function synthesize(env, text, fetchImpl = fetch) {
+  const models = [env.TTS_MODEL, "gemini-2.5-flash-preview-tts", "gemini-2.5-flash-tts"].filter(Boolean);
+  let lastErr;
+  for (const model of [...new Set(models)]) {
+    const res = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `${STYLE}\n\n${text}` }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: env.TTS_VOICE || "Sulafat" } } },
+        },
+      }),
+    });
+    if (res.status === 404) { lastErr = Object.assign(new Error("no model"), { status: 404 }); continue; }
+    if (!res.ok) throw Object.assign(new Error(`tts ${res.status}`), { status: res.status });
+    const data = await res.json();
+    const part = (data.candidates?.[0]?.content?.parts || []).find((p) => p.inlineData?.data);
+    if (!part) throw new Error("no audio");
+    const rate = Number((part.inlineData.mimeType || "").match(/rate=(\d+)/)?.[1]) || 24000;
+    const bin = atob(part.inlineData.data);
+    const pcm = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) pcm[i] = bin.charCodeAt(i);
+    return pcmToWav(pcm, rate);
+  }
+  throw lastErr || new Error("tts unavailable");
+}
+
+async function speakHandler(body, env, origin, request) {
+  const text = typeof body?.text === "string" ? body.text.replace(/\s+/g, " ").trim().slice(0, MAX_SPEAK) : "";
+  if (!text) return json({ error: "bad request" }, 400, origin);
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+
+  // Same sentence → same audio: cache it at the edge so repeat lines cost no quota.
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${env.TTS_VOICE || "Sulafat"}|${text}`));
+  const key = new Request(`https://cache.uli/${[...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("")}.wav`);
+  const cache = typeof caches !== "undefined" ? caches.default : null;
+  const hit = cache && (await cache.match(key));
+  const headers = { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=604800", ...cors(origin) };
+  if (hit) return new Response(hit.body, { headers });
+
+  if (rateLimited(ip + ":speak")) return json({ error: "slow down" }, 429, origin);
+  try {
+    const wav = await synthesize(env, text);
+    if (cache) await cache.put(key, new Response(wav, { headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=2592000" } }));
+    return new Response(wav, { headers });
+  } catch (e) {
+    return json({ error: e.status === 429 ? "quota" : "upstream" }, 502, origin);
+  }
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
-    if (url.pathname !== "/chat" || request.method !== "POST") return json({ error: "not found" }, 404, origin);
+    if (!["/chat", "/speak"].includes(url.pathname) || request.method !== "POST") return json({ error: "not found" }, 404, origin);
     if (!ALLOWED_ORIGINS.includes(origin)) return json({ error: "forbidden" }, 403, origin);
     if (!env.GEMINI_API_KEY) return json({ error: "not configured" }, 503, origin);
 
-    const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-    if (rateLimited(ip)) return json({ error: "slow down" }, 429, origin);
-
     let body;
     try { body = await request.json(); } catch { return json({ error: "bad json" }, 400, origin); }
+
+    if (url.pathname === "/speak") return speakHandler(body, env, origin, request);
+
+    const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+    if (rateLimited(ip)) return json({ error: "slow down" }, 429, origin);
     const contents = cleanHistory(body?.messages);
     if (!contents) return json({ error: "bad request" }, 400, origin);
 

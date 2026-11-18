@@ -202,24 +202,25 @@
       vs.find((v) => /^en/i.test(v.lang)) || null;
   };
   if (synth) { pickVoice(); synth.onvoiceschanged = pickVoice; }
-  // Pre-recorded clips (Tara, Indian English) so every visitor hears the same natural voice.
-  // Falls back to the browser's own voice only if a clip is missing.
-  let audio = null;
-  const playClip = (clean) => new Promise((resolve) => {
-    if (audio) { audio.pause(); audio = null; }
-    const a = new Audio(`voice/${clipId(clean)}.m4a`);
+  // Voice, best first:
+  //  1. pre-recorded clips for fixed lines (greeting, thanks, jokes…) — instant
+  //  2. natural Gemini voice from the worker's /speak, sentence by sentence (cached at the edge)
+  //  3. the browser's own Indian English voice, if both of the above are unavailable
+  let audio = null, speakToken = 0;
+  const stopAudio = () => { speakToken++; if (audio) { audio.pause(); audio = null; } if (synth) synth.cancel(); };
+  const playUrl = (src, token) => new Promise((resolve) => {
+    if (token !== speakToken) return resolve(true);
+    const a = new Audio(src);
     audio = a;
     let started = false;
-    a.onplaying = () => (started = true);
+    a.onplaying = () => { started = true; setState("speaking"); };
     a.onended = a.onpause = () => resolve(true);
-    a.onerror = () => resolve(started ? true : false);
+    a.onerror = () => resolve(started);
     a.play().catch(() => resolve(false));
   });
-  const speak = (text, recorded = true) => new Promise(async (done) => {
-    const clean = spoken(text);
+  const browserSpeak = (clean, token) => new Promise((done) => {
+    if (token !== speakToken) return done();
     setState("speaking");
-    if (recorded && await playClip(clean)) return done();
-    if (!active && root.dataset.state !== "speaking") return done();
     if (!synth) { setTimeout(done, Math.min(4000, 600 + clean.length * 25)); return; }
     synth.cancel();
     const u = new SpeechSynthesisUtterance(clean);
@@ -229,10 +230,54 @@
     let finished = false;
     const end = () => { if (!finished) { finished = true; done(); } };
     u.onend = u.onerror = end;
-    // Safari sometimes never fires onend for long utterances
-    setTimeout(end, 1500 + clean.length * 90);
+    setTimeout(end, 1500 + clean.length * 90); // Safari sometimes never fires onend
     synth.speak(u);
   });
+  const chunkText = (t) => {
+    const sentences = (t.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) || [t]).map((x) => x.trim()).filter(Boolean);
+    const out = []; let cur = "";
+    for (const x of sentences) {
+      if (cur && (cur + " " + x).length > 150) { out.push(cur); cur = x; } else cur = (cur + " " + x).trim();
+    }
+    if (cur) out.push(cur);
+    return out;
+  };
+  const fetchVoice = (text) => {
+    const url = typeof AI_URL === "string" && AI_URL ? AI_URL.replace(/\/chat$/, "/speak") : "";
+    if (!url) return Promise.resolve(null);
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 20000);
+    return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal: ctrl.signal })
+      .then((r) => (r.ok ? r.blob() : null)).catch(() => null).finally(() => clearTimeout(t));
+  };
+  const naturalSpeak = async (clean, token) => {
+    const parts = chunkText(clean);
+    const jobs = parts.map(fetchVoice); // fetch all sentences at once, play them in order
+    for (let i = 0; i < parts.length; i++) {
+      const blob = await jobs[i];
+      if (token !== speakToken) return true;
+      if (!blob) {
+        if (i === 0) return false;
+        await browserSpeak(parts.slice(i).join(" "), token);
+        return true;
+      }
+      const src = URL.createObjectURL(blob);
+      const ok = await playUrl(src, token);
+      URL.revokeObjectURL(src);
+      if (!ok && i === 0) return false;
+    }
+    return true;
+  };
+  const speak = async (text, recorded = true) => {
+    const clean = spoken(text);
+    const token = ++speakToken;
+    if (audio) { audio.pause(); audio = null; }
+    if (recorded && await playUrl(`voice/${clipId(clean)}.m4a`, token)) return;
+    if (token !== speakToken) return;
+    if (await naturalSpeak(clean, token)) return;
+    if (token !== speakToken) return;
+    await browserSpeak(clean, token);
+  };
 
   /* voice in */
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -330,8 +375,7 @@
   const stop = (msg) => {
     active = false; misses = 0;
     if (rec) { try { rec.abort(); } catch {} rec = null; }
-    if (synth) synth.cancel();
-    if (audio) { audio.pause(); audio = null; }
+    stopAudio();
     setState("idle");
     root.classList.remove("open");
     if (msg) { show(msg); statusEl.textContent = ""; setTimeout(() => { if (!active && typeForm.hidden) bubble.hidden = true; }, 3500); }
@@ -346,8 +390,7 @@
   $(".owl-kbd").addEventListener("click", () => {
     active = false;
     if (rec) { try { rec.abort(); } catch {} }
-    if (synth) synth.cancel();
-    if (audio) { audio.pause(); audio = null; }
+    stopAudio();
     bubble.hidden = false;
     typeMode();
   });
