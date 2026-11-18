@@ -1,506 +1,179 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Anurag-Kushwah-Portfolio</title>
-    <link rel="icon" type="image/x-icon" href="/image/download.png">
-    <link rel="stylesheet" href="style.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/boxicons@latest/css/boxicons.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/github-calendar@latest/dist/github-calendar-responsive.css"
-    />
-  </head>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Anurag Kushwah — Tech All-Rounder</title>
+  <meta name="description" content="Anurag Kushwah: tech all-rounder and software engineer — backend, frontend, mobile, AI/LLM and cloud. Currently at Animall." />
+  <meta name="theme-color" content="#07070a" />
+  <meta property="og:title" content="Anurag Kushwah — Tech All-Rounder" />
+  <meta property="og:description" content="Scalable backends, real-time systems and AI/LLM products." />
+  <meta property="og:image" content="https://anurag0x.github.io/image/anurag.jpg" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2307070a'/><text x='50' y='68' font-size='58' text-anchor='middle' font-family='monospace' font-weight='700' fill='%23c6ff3d'>a_</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
 
-  <body>
-    <!-- Navbar  Section Start -->
+  <!-- NAV -->
+  <header class="nav">
+    <a href="#top" class="logo" aria-label="Back to top">a<span>_</span></a>
+    <nav class="nav-links">
+      <a href="#about">about</a>
+      <a href="#trace">experience</a>
+      <a href="#work">work</a>
+      <a href="#stack">stack</a>
+      <a href="#contact">contact</a>
+    </nav>
+    <div class="nav-right">
+      <button class="kbd-btn" data-open="palette" aria-label="Open command palette"><kbd>⌘</kbd><kbd>K</kbd></button>
+      <button class="kbd-btn term-btn" data-open="terminal" aria-label="Open terminal">&gt;_</button>
+    </div>
+  </header>
 
-    <header>
-      <a href="#" class="logo">Anurag<span>Kushwah</span></a>
-
-      <div class="bx bx-menu" id="menu-icon"></div>
-
-      <ul class="navbar" id="nav-menu">
-        <li><a class="nav-link home" href="#home">Home</a></li>
-        <li><a class="nav-link about" href="#about">About Me</a></li>
-        <li><a class="nav-link skills" href="#skills">Skills</a></li>
-        <li><a class="nav-link projects" href="#projects">Projects</a></li>
-        <li><a class="nav-link contact" href="#contact">Contact</a></li>
-        <li class="nav-link resume">
-          <a
-            id="resume-link-1"
-            href="./Resume/Anurag-Kushwah-Resume.pdf"
-            target="_blank"
-            download="Anurag-Kushwah-Resume"
-          >
-            <button class="resume-button" id="resume-button-1">Resume</button>
-          </a>
-        </li>
-        <div class="bx bx-moon" id="darkmode"></div>
-      </ul>
-    </header>
-
-    <!-- Navbar Section End -->
-
-    <!-- Home Section Start -->
-
-    <section id="home">
-      <div class="home-text">
-        <span>Hello, I'm</span>
-        <h1 id="user-detail-name">Anurag Kushwah</h1>
-        <h2>Full Stack Web Developer</h2>
-        <br />
-        <a
-          id="resume-link-2"
-          href="./Resume/Anurag-Kushwah-Resume.pdf"
-          download="Anurag-Kushwah-Resume"
-          target="_blank"
-        >
-          <button class="resume-button" id="resume-button-2">Resume</button></a
-        >
+  <main id="top">
+    <!-- HERO -->
+    <section class="hero">
+      <canvas id="particles" aria-hidden="true"></canvas>
+      <div class="hero-inner">
+        <p class="status"><span class="pulse"></span> shipping @ <b>Animall</b><span class="when"> · <span id="clock">Gurugram</span></span></p>
+        <h1 class="hero-title">
+          <span class="line">I build</span>
+          <span class="line"><span class="scramble" id="scramble">backends</span></span>
+          <span class="line">that <em>don't</em> fall over.</span>
+        </h1>
+        <p class="hero-sub">Anurag Kushwah — a tech all-rounder. Backend, frontend, mobile, AI, cloud: if it's tech, I can build it. 3+ years shipping with Node.js, Python, React, Flutter, Postgres, Redis &amp; Kafka.</p>
+        <div class="hero-cta">
+          <a href="#work" class="btn btn-solid magnetic">see the work ↓</a>
+          <button class="btn btn-ghost magnetic" data-open="terminal">open terminal &gt;_</button>
+        </div>
       </div>
-      <div class="home-img1">
-        <img
-          src="https://www.simplilearn.com/ice9/free_resources_article_thumb/fullstack_php_js.jpg"
-          alt=""
-        />
-      </div>
+      <p class="hint">psst — move your mouse. talk to the owl ↘ try the <kbd>~</kbd> key. or the konami code.</p>
     </section>
 
-    <!-- Home Section End -->
-
-    <!-- About Section Start -->
-
-    <section class="about section" id="about">
-      <div class="heading">
-        <h2>About Me</h2>
-        <span>Introduction</span>
-      </div>
-
-      <div class="about-container">
-        <div class="home-img-main">
-          <img
-            class="home-img"
-            src="./image/IMG20230718115712.jpg"
-            alt="Anurag_Kushwah"
-          />
-        </div>
-        <div class="about-text" id="user-detail-intro">
-          <p>
-            As a skilled Node.js backend and frontend developer, I have extensive experience in developing
-                and deploying complex server-side applications using popular frameworks such as Express.js and Koa.js. I
-                am proficient in database technologies such as MongoDB and MySQL and possess a strong understanding of
-                asynchronous programming, RESTful APIs, and server-side caching mechanisms. With a focus on scalability,
-                security, and performance, I am committed to delivering robust, efficient, and maintainable solutions
-                that meet the needs of modern web applications.
-          </p>
-          <p class="p-1">
-           
-            <br />
-            Now I am a Detail-orientated full-stack web developer, who loves
-            working with tech stacks like HTML, CSS, Javascript, Node Js,
-            MongoDB , Express , React , Redux , Typescript etc. and passionate about developing user-friendly
-            web applications.
-            <!-- Since then aesthetically functional websites has just been my thing. -->
-          </p>
-        
-<br>
-          <li>
-            <a
-              id="resume-link-3"
-              href="./Resume/Anurag-Kushwah-Resume.pdf"
-              download="Anurag-Kushwah-Resume"
-              target="_blank"
-            >
-              <button class="resume-button" id="resume-button-3">Resume</button>
-            </a>
-          </li>
-        </div>
-      </div>
-    </section>
-
-    <!-- About Section End -->
-
-    <!-- Skills Section Start -->
-
-    <section id="skills">
-      <div class="heading">
-        <h2>Skills</h2>
-        <span>Tech Stack & Tools</span>
-      </div>
-      <div class="skills-content">
-        <div class="skills-card">
-          <img class="skills-card-img" src="./image/html1.png" alt="html" />
-          <h4 class="skills-card-name">HTML</h4>
-        </div>
-
-        <div class="skills-card">
-          <img class="skills-card-img" src="./image/css.png" alt="css" />
-          <h4 class="skills-card-name">CSS</h4>
-        </div>
-        <div class="skills-card">
-          <img class="skills-card-img" src="./image/js.png" alt="js" />
-          <h4 class="skills-card-name">JS</h4>
-        </div>
-
-        <div class="skills-card">
-          <img class="skills-card-img" src="./image/mongodb.png" alt="react" />
-          <h4 class="skills-card-name">MongoDB</h4>
-        </div>
-        <div class="skills-card">
-          <img
-            class="skills-card-img"
-            src="./image/expressJS.png"
-            alt="redux"
-          />
-          <h4 class="skills-card-name">Express</h4>
-        </div>
-        <div class="skills-card">
-          <img class="skills-card-img" src="./image/npm.png" alt="npm" />
-          <h4 class="skills-card-name">npm</h4>
-        </div>
-        <div class="skills-card">
-          <img class="skills-card-img" src="./image/redux.png" alt="npm" />
-          <h4 class="skills-card-name">Redux</h4>
-        </div>
-        <div class="skills-card">
-          <img class="skills-card-img" src="./image/react.png" alt="npm" />
-          <h4 class="skills-card-name">React</h4>
-        </div>
-        <div class="skills-card">
-          <img class="skills-card-img" src="./image/nodeJs.jpg" alt="chakra" />
-          <h4 class="skills-card-name">Node Js</h4>
-        </div>
-        <div class="skills-card">
-          <img class="skills-card-img" src="./image/github.png" alt="github" />
-          <h4 class="skills-card-name">GitHub</h4>
-        </div>
-        <div class="skills-card">
-          <img class="skills-card-img" src="./image/vscode.png" alt="vscode" />
-          <h4 class="skills-card-name">VS Code</h4>
-        </div>
-      </div>
-    </section>
-
-    <!-- Skills Section End -->
-
-    <!-- Projects Section Start -->
-
-    <section id="projects">
-      <div class="heading">
-        <h2>Projects</h2>
-        <span>Few Things I've Build</span>
-      </div>
-
-      <div class="projects-container">
-        <div class="project-card">
-          <img src="./image/ajio1.png" alt="AJION" />
-          <div class="project-name">
-            <h3 class="project-title">AJIO Clone</h3>
-          </div>
-          <div class="project-description">
-            <p>
-              It is an E-commerce website deals with Fashion products.
-            </p>
-          </div>
-
-          <h4 style="padding: 10px">Tech Stack</h4>
-          <div class="project-tech-stack1">
-            <div class="tech-card">
-              <img src="./image/html1.png" alt="html" />
-              <h6 clclass="project-tech-stack">HTML</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/css.png" alt="css" />
-              <h6 class="project-tech-stack">CSS</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/js.png" alt="js" />
-              <h6 class="project-tech-stack">JS</h6>
-            </div>
-          </div>
-          <div class="projects-button">
-            <button class="button-project-link">
-              <a
-                class="project-deployed-link"
-                href="https://ajio-clone-bay.vercel.app/"
-                target="_blank"
-                >Live💻</a
-              >
-            </button>
-            <button class="button-project-link">
-              <a
-                class="project-github-link"
-                href="https://github.com/prahlad0x/tropical-angle-5917"
-                target="_blank"
-                >GitHub</a
-              >
-            </button>
-          </div>
-        </div>
-        <div class="project-card">
-          <img src="./image/Screenshot 2023-10-03 131749.png" alt="carter's" />
-          <div class="project-name">
-            <h3 class="project-title">Design School</h3>
-          </div>
-          <div class="project-description">
-            <p>
-              It ia an website where we can learn about designing
-            </p>
-          </div>
-          <h4 style="padding: 10px">Tech Stack</h4>
-          <div class="project-tech-stack1">
-           
-            <div class="tech-card">
-              <img src="./image/chackra.jpeg" alt="css" />
-              <h6 class="project-tech-stack">Chakra</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/react.png" alt="MongoDB" />
-              <h6 class="project-tech-stack">React</h6>
-            </div>
-          </div>
-
-          <div class="projects-button">
-            <button class="button-project-link">
-              <a
-                class="project-deployed-link"
-                href=""
-                target="_blank"
-                >Live💻</a
-              >
-            </button>
-            <button class="button-project-link">
-              <a
-                class="project-github-link"
-                href="https://github.com/anurag0x/public-language-8892"
-                target="_blank"
-                >GitHub</a
-              >
-            </button>
-          </div>
-        </div>
-        <div class="project-card">
-          <img src="./image/Screenshot 2023-10-03 130346.png" alt="carter's" />
-          <div class="project-name">
-            <h3 class="project-title">Spendwise</h3>
-          </div>
-          <div class="project-description">
-            <p>
-              It ia an website which keep tracks of your spend and investment
-            </p>
-          </div>
-          <h4 style="padding: 10px">Tech Stack</h4>
-          <div class="project-tech-stack1">
-           
-            <div class="tech-card">
-              <img src="./image/chackra.jpeg" alt="css" />
-              <h6 class="project-tech-stack">Chakra</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/js.png" alt="js" />
-              <h6 class="project-tech-stack">JS</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/nodeJs.jpg" alt="NodeJs" />
-              <h6 class="project-tech-stack">NodeJs</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/expressJS.png" alt="Express" />
-              <h6 class="project-tech-stack">Express</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/mongodb.png" alt="MongoDB" />
-              <h6 class="project-tech-stack">MongoDB</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/react.png" alt="MongoDB" />
-              <h6 class="project-tech-stack">React</h6>
-            </div>
-          </div>
-
-          <div class="projects-button">
-            <button class="button-project-link">
-              <a
-                class="project-deployed-link"
-                href="https://spendwise-blond.vercel.app/"
-                target="_blank"
-                >Live💻</a
-              >
-            </button>
-            <button class="button-project-link">
-              <a
-                class="project-github-link"
-                href="https://github.com/anurag0x/heady-rabbits-89576"
-                target="_blank"
-                >GitHub</a
-              >
-            </button>
-          </div>
-        </div>
-        <div class="project-card">
-          <img src="./image/Screenshot 2023-10-03 125454.png" alt="carter's" />
-          <div class="project-name">
-            <h3 class="project-title">Arthub</h3>
-          </div>
-          <div class="project-description">
-            <p>
-              Interactive Fulll Stack clone of DeviantArt to buy and sell your arts
-            </p>
-          </div>
-          <h4 style="padding: 10px">Tech Stack</h4>
-          <div class="project-tech-stack1">
-           
-            <div class="tech-card">
-              <img src="./image/chackra.jpeg" alt="css" />
-              <h6 class="project-tech-stack">Chakra</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/js.png" alt="js" />
-              <h6 class="project-tech-stack">JS</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/nodeJs.jpg" alt="NodeJs" />
-              <h6 class="project-tech-stack">NodeJs</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/expressJS.png" alt="Express" />
-              <h6 class="project-tech-stack">Express</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/mongodb.png" alt="MongoDB" />
-              <h6 class="project-tech-stack">MongoDB</h6>
-            </div>
-            <div class="tech-card">
-              <img src="./image/react.png" alt="MongoDB" />
-              <h6 class="project-tech-stack">React</h6>
-            </div>
-          </div>
-
-          <div class="projects-button">
-            <button class="button-project-link">
-              <a
-                class="project-deployed-link"
-                href="https://arthub-rosy.vercel.app/"
-                target="_blank"
-                >Live💻</a
-              >
-            </button>
-            <button class="button-project-link">
-              <a
-                class="project-github-link"
-                href="https://github.com/anurag0x/heady-rabbits-8957"
-                target="_blank"
-                >GitHub</a
-              >
-            </button>
-          </div>
-        </div> --> -->
-
-      </div>
-      <br /><br />
-      <p style="text-align: center; margin-top: 8px; color: rgb(2, 166, 70)">
-        Made with ❤ By Anurag Kushwah
-      </p>
-    </section>
-
-    <!-- Projects Section End -->
-
-    <!-- Github Stats Section Start -->
-
-    <section class="react-activity-calendar">
-      <div class="heading">
-        <h2>GitHub Statistics</h2>
-        <span>& Calender</span>
-      </div>
-      <br />
-      <div class="calendar">
-        <!-- Loading the data just for you. -->
-      </div>
-      <br />
-      <div id="git-stat">
-        <div>
-          <img
-            id="github-streak-stats"
-            src="https://github-readme-streak-stats.herokuapp.com/?user=anurag0x&theme=dark&hide_border=false"
-            alt="streak-stat"
-          />
-          <br />
-          <img
-            id="github-stats-card"
-            src="https://github-readme-stats.vercel.app/api?username=anurag0x&theme=dark&hide_border=false&include_all_commits=false&count_private=true"
-            alt="stat-card"
-          />
-        </div>
-        <div>
-          <img
-            id="github-top-langs"
-            src="https://github-readme-stats.vercel.app/api/top-langs/?username=anurag0x&theme=dark&hide_border=false&include_all_commits=false&count_private=true&layout=compact"
-            alt="top_languages"
-          />
-        </div>
-      </div>
-    </section>
-
-    <!-- Github Stats Section End -->
-
-    <!-- Contact Section Start -->
-
-    <section id="contact">
-      <div class="heading">
-        <h2>Contact Details</h2>
-      </div>
-      <br>
-      <div class="information">
-        <div class="info-box">
-          <i class="bx bxs-phone"></i>
-          <span id="contact-phone">+91 6264514060</span>
-        </div>
-
-        <div class="info-box">
-          <i class="bx bxs-envelope"></i>
-          <a href="mailto:anuragkushwah134@gmail.com" ><span id="contact-email"> anuragkushwah134@gmail.com </span></a>
-        </div>
-      </div>
-    </section>
-
-    <!-- Contact Section End -->
-
-    <div class="footer">
-      <h2>Follow Me</h2>
-      <div class="footer-social">
-        <a
-          id="contact-github"
-          href="https://github.com/anurag0x"
-          target="_blank"
-          ><i class="bx bxl-github"></i
-        ></a>
-        <a
-          id="contact-linkedin"
-          href="https://www.linkedin.com/in/anurag-kushwah-b8687124b"
-          target="_blank"
-          ><i class="bx bxl-linkedin"></i
-        ></a>
+    <!-- MARQUEE -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>Node.js ✦ Python ✦ PostgreSQL ✦ Redis ✦ Kafka ✦ Socket.IO ✦ Agora ✦ Qdrant ✦ Langfuse ✦ RAG ✦ Microservices ✦ GCP ✦ AWS ✦ Docker ✦ </span>
+        <span>Node.js ✦ Python ✦ PostgreSQL ✦ Redis ✦ Kafka ✦ Socket.IO ✦ Agora ✦ Qdrant ✦ Langfuse ✦ RAG ✦ Microservices ✦ GCP ✦ AWS ✦ Docker ✦ </span>
       </div>
     </div>
 
-    <div class="footer-bottom">
-      <p>© Thank You for visiting my PortFolio 💙💙</p>
-    </div>
+    <!-- ABOUT -->
+    <section id="about" class="section about">
+      <div class="section-tag">01 / about</div>
+      <div class="about-grid">
+        <figure class="photo reveal">
+          <img src="image/anurag.jpg" alt="Portrait of Anurag Kushwah" loading="lazy" width="1000" height="1000" />
+          <figcaption>📍 Gurugram · 🏡 Amjhera, Dhar</figcaption>
+        </figure>
+        <div class="about-copy">
+          <h2 class="big reveal">From a small town in <em>Madhya Pradesh</em> to systems handling <em>100k+</em> requests a day.</h2>
+          <p class="reveal">I'm a tech all-rounder — give me a problem, not a stack. APIs, web frontends, Flutter apps, AI pipelines, real-time systems, cloud deploys: I'll pick it up and ship it. My favourite parts are the hard, invisible ones: API gateways, event-driven pipelines, caching that shaves real milliseconds, and auth that doesn't leak. These days I'm at <b>Animall</b>, building the backend that helps India's dairy farmers — voice calls, chat, notification and IVR pipelines, and AI-powered support.</p>
+          <p class="reveal">Before that: AI document pipelines at <b>Kenpath</b>, telehealth &amp; commerce at <b>Kapiva</b>, and learning platforms at <b>Masai</b>. B.Sc. CS from DAVV Indore.</p>
+          <div class="stats">
+            <div class="stat reveal"><span class="num" data-count="3" data-suffix="+">0</span><span class="lbl">years shipping</span></div>
+            <div class="stat reveal"><span class="num" data-count="100" data-suffix="k+">0</span><span class="lbl">requests / day</span></div>
+            <div class="stat reveal"><span class="num" data-count="10" data-suffix="k+">0</span><span class="lbl">consults / month</span></div>
+            <div class="stat reveal"><span class="num" data-count="35" data-suffix="%">0</span><span class="lbl">faster APIs</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <!-- Javascript -->
-    <script src="script.js"></script>
-  </body>
+    <!-- TRACE (experience) -->
+    <section id="trace" class="section">
+      <div class="section-tag">02 / experience</div>
+      <h2 class="big reveal">My career, as a <em>trace</em>.</h2>
+      <p class="muted reveal">Every engineer's career is a distributed system. Here's mine, rendered like an LLM trace. Click a span to inspect it.</p>
+      <div class="trace reveal" id="traceView">
+        <div class="trace-head">
+          <span>trace_id: <b>anurag-kushwah</b></span>
+          <span class="ok">● status: 200 OK</span>
+        </div>
+        <div id="spans"></div>
+        <pre class="inspector" id="inspector" aria-live="polite">// click a span ↑</pre>
+      </div>
+    </section>
+
+    <!-- WORK -->
+    <section id="work" class="section">
+      <div class="section-tag">03 / work</div>
+      <h2 class="big reveal">Services I've <em>shipped</em>.</h2>
+      <div class="filters reveal" role="tablist">
+        <button class="chip active" data-filter="all">all</button>
+        <button class="chip" data-filter="ai">ai / llm</button>
+        <button class="chip" data-filter="backend">backend</button>
+        <button class="chip" data-filter="side">side projects</button>
+      </div>
+      <div class="cards" id="cards"></div>
+    </section>
+
+    <!-- STACK -->
+    <section id="stack" class="section stack">
+      <div class="section-tag">04 / stack</div>
+      <h2 class="big reveal">The <em>orbit</em>.</h2>
+      <p class="muted reveal">Node.js at the core. Everything else in orbit. Hover to freeze time.</p>
+      <div class="orbit-wrap reveal">
+        <div class="orbit" id="orbit">
+          <div class="core">Node.js</div>
+        </div>
+      </div>
+      <div class="stack-list reveal">
+        <div><h3>backend</h3><p>Node.js · Express · NestJS · Python · TypeScript · REST · WebSockets · Socket.IO · JWT / OAuth / SSO · RBAC</p></div>
+        <div><h3>data</h3><p>PostgreSQL · MongoDB · MySQL · Redis · Kafka · Qdrant · indexing &amp; query tuning</p></div>
+        <div><h3>ai / llm</h3><p>RAG · embeddings · vector search · document ingestion · Langfuse · Claude API · prompt engineering</p></div>
+        <div><h3>infra</h3><p>GCP · AWS · Docker · GitHub Actions · Nginx · Cloud Tasks · microservices · event-driven</p></div>
+        <div><h3>front</h3><p>React · Next.js · Redux · Tailwind · Flutter</p></div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="section contact">
+      <div class="section-tag">05 / contact</div>
+      <h2 class="mega reveal">Let's build<br /><em>something loud.</em></h2>
+      <div class="contact-row reveal">
+        <button class="btn btn-solid magnetic big-btn" id="copyEmail" data-email="anuragkushwah134@gmail.com">anuragkushwah134@gmail.com <span class="copy-hint">click to copy</span></button>
+      </div>
+      <div class="socials reveal">
+        <a href="https://github.com/anurag0x" target="_blank" rel="noopener">github ↗</a>
+        <a href="https://www.linkedin.com/in/anuraagkushwah" target="_blank" rel="noopener">linkedin ↗</a>
+        <a href="https://twitter.com/anuraag0x" target="_blank" rel="noopener">twitter ↗</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>© <span id="year"></span> Anurag Kushwah</span>
+    <span>handcrafted · no frameworks · 0 dependencies</span>
+  </footer>
+
+  <!-- TERMINAL -->
+  <div class="overlay" id="terminal" role="dialog" aria-modal="true" aria-label="Terminal" hidden>
+    <div class="term">
+      <div class="term-bar"><i></i><i></i><i></i><span>anurag@portfolio: ~</span><button class="close" data-close aria-label="Close terminal">×</button></div>
+      <div class="term-body" id="termBody"></div>
+      <form class="term-input" id="termForm" autocomplete="off">
+        <span class="prompt">anurag@portfolio:~$</span>
+        <input id="termIn" spellcheck="false" aria-label="Terminal command" />
+      </form>
+    </div>
+  </div>
+
+  <!-- COMMAND PALETTE -->
+  <div class="overlay" id="palette" role="dialog" aria-modal="true" aria-label="Command palette" hidden>
+    <div class="pal">
+      <input id="palIn" placeholder="Type a command or jump to…" spellcheck="false" aria-label="Search commands" />
+      <ul id="palList" role="listbox"></ul>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+  <script src="owl.js"></script>
+</body>
 </html>
-
-<script src="https://unpkg.com/github-calendar@latest/dist/github-calendar.min.js"></script>
-<script>
-  // GitHubCalendar(".calendar", "Surajy001");
-  // or enable responsive functionality
-  GitHubCalendar(".calendar", "anurag0x`", { responsive: true });
-</script>
