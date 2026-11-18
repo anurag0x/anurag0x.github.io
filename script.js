@@ -129,7 +129,7 @@
     const core = document.createElement("div"); core.className = "cur-core";
     const lock = document.createElement("div"); lock.className = "cur-lock"; lock.innerHTML = "<i></i><i></i><i></i><i></i>";
     document.body.append(lock, core);
-    const TARGETS = "a,button,.card,.span-row,.planet span,.chip,.owl-teaser";
+    const TARGETS = "a,button,.card,.play-card,.span-row,.planet span,.chip,.owl-teaser";
     let mx = -100, my = -100, lastBitX = 0, lastBitY = 0, target = null, spin = 0;
     const box = { x: -100, y: -100, w: 30, h: 30 };
     addEventListener("pointermove", (e) => {
@@ -417,7 +417,7 @@ front     React Next.js Redux Tailwind Flutter`,
     date: () => new Date().toString(),
     echo: (a) => esc(a.join(" ")),
     history: () => hist.map((h, i) => `${String(i + 1).padStart(4)}  ${esc(h)}`).join("\n") || "(empty)",
-    goto: (a) => { const t = { about: "#about", trace: "#trace", work: "#work", stack: "#stack", contact: "#contact" }[a[0]]; if (t) { go(t); return ""; } return "usage: goto about|trace|work|stack|contact"; },
+    goto: (a) => { const t = { about: "#about", trace: "#trace", work: "#work", stack: "#stack", play: "#play", contact: "#contact" }[a[0]]; if (t) { go(t); return ""; } return "usage: goto about|trace|work|stack|contact"; },
     sudo: (a) => a.join(" ") === "hire-me" ? (confetti(), `<span class="acc">[sudo] permission granted.</span>\n✨ excellent decision. ${EMAIL} is on your clipboard.`) + (copy(EMAIL), "") : `sudo: ${esc(a.join(" ") || "")}: nice try`,
     coffee: () => `      ( (\n       ) )\n    ........\n    |      |]\n    \\      /\n     \`----'\n  brewing… converting caffeine → code ☕`,
     chaos: () => (toggleChaos(), chaos ? "⚠️  chaos mode ON. type 'chaos' again to restore order." : "order restored."),
@@ -457,6 +457,7 @@ front     React Next.js Redux Tailwind Flutter`,
     { label: "Go to Experience trace", hint: "section", run: () => go("#trace") },
     { label: "Go to Work", hint: "section", run: () => go("#work") },
     { label: "Go to Stack orbit", hint: "section", run: () => go("#stack") },
+    { label: "Go to Beyond code (who I am, sports & games)", hint: "section", run: () => go("#play") },
     { label: "Go to Contact", hint: "section", run: () => go("#contact") },
     { label: "Copy email address", hint: "action", run: async () => { close(); toast((await copy(EMAIL)) ? "email copied 👋" : EMAIL); } },
     { label: "Open GitHub", hint: "link", run: () => { close(); open_(LINKS.github); } },
@@ -562,3 +563,9 @@ front     React Next.js Redux Tailwind Flutter`,
   addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 })();
+
+// "ask the owl" buttons
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-ask]");
+  if (b && window.askOwl) window.askOwl(b.dataset.ask);
+});

@@ -53,6 +53,10 @@
       a: ["Hoo-ray! Anything else you'd like to know?", "My pleasure! 🦉 Ask away if you're curious about anything else."] },
     { id: "bye", keys: ["bye", "goodbye", "see you", "later", "exit", "close"],
       a: ["Bye for now! Hoot me up any time. 🦉"], act: "close" },
+    { id: "person", keys: ["as a person", "personality", "person", "like as", "kind of person", "character", "values", "nature", "teammate", "team player", "attitude", "who is he really", "mindset", "philosophy", "motto", "problem solving", "approach"],
+      a: ["He's a pretty normal guy who loves a good problem. His mindset: every problem or situation is a way to new learnings, new exposures and new solutions. He's a team player, a curious learner, and calm under pressure."] },
+    { id: "hobbies", keys: ["hobbies", "hobby", "sports", "sport", "play", "plays", "games", "game", "gaming", "gamer", "bgmi", "pubg", "fifa", "tekken", "football", "cricket", "volleyball", "pool", "snooker", "esports", "esport", "gym", "fitness", "workout", "free time", "interests", "athlete", "personal"],
+      a: ["Off the keyboard, he's an all-round athlete! He's big on fitness, plays football, cricket and volleyball, loves pool and snooker, and believes there's no limit: if he wants to learn or do something, he will. He's also a big gamer: BGMI, FIFA and Tekken, plus mobile games and esports."] },
     { id: "joke", keys: ["joke", "funny", "fun fact", "laugh"],
       a: ["Why did the owl join the backend team? Because it's great at handling night-time requests. Hoo-hoo!", "Anurag once made an API 35 percent faster. I can turn my head 270 degrees. We both optimise."] },
   ];
@@ -62,6 +66,8 @@
     hiNoMic: "Namaste! I'm Uli. My ears don't work in this browser, so please type your question below.",
     mic: "I need microphone permission to hear you. Allow it in the address bar, or type instead.",
     miss: "I didn't catch that. Try again?",
+    wake: "Hoo! Yes, I'm listening.",
+    handsOn: "Hands-free is on. Just say, hey Uli, whenever you want me.",
   };
   // what actually gets spoken (emoji stripped, email and symbols said naturally)
   const spoken = (text) => text
@@ -140,6 +146,7 @@
         <input class="owl-in" placeholder="Type your question…" aria-label="Ask Uli a question" />
         <button aria-label="Ask">↑</button>
       </form>
+      <button class="owl-wake" type="button" aria-pressed="false">🎙️ Hands-free: say “Hey Uli”</button>
       <div class="owl-actions">
         <button class="owl-kbd" type="button">⌨️ type instead</button>
         <button class="owl-stop" type="button">■ stop</button>
@@ -301,7 +308,11 @@
 
   /* ---------------- smart answers (Gemini via Cloudflare Worker) ---------------- */
   // Set to the deployed worker's /chat URL. Empty = built-in answers only.
-  const AI_URL = "https://gyani.anuragkushwah134.workers.dev/chat";
+  // On a local preview you can test an unreleased brain with ?ai=local (ignored on the live site).
+  const IS_LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+  const AI_URL = IS_LOCAL && new URLSearchParams(location.search).get("ai") === "local"
+    ? "http://127.0.0.1:8787/chat"
+    : "https://gyani.anuragkushwah134.workers.dev/chat";
   const history = []; // [{role: "user"|"model", text}]
   const LOCAL_FIRST = new Set(["greet", "bye", "thanks", "owl", "joke"]); // instant, recorded-voice replies
   const askAI = async (q) => {
@@ -337,10 +348,18 @@
     return act;
   };
 
-  let conversation = async () => {
+  let conversation = async (firstQ, woke) => {
     active = true;
     root.classList.add("open");
-    if (!greeted) {
+    if (firstQ) {
+      greeted = true;
+      const act = await respond(firstQ);
+      if (act === "close") { stop(); return; }
+    } else if (woke) {
+      greeted = true;
+      show(LINES.wake);
+      await speak(LINES.wake);
+    } else if (!greeted) {
       greeted = true;
       const hi = SR ? LINES.hi : LINES.hiNoMic;
       show(hi);
@@ -355,7 +374,7 @@
         show(m); await speak(m); return typeMode();
       }
       if (!text) {
-        if (++misses >= 2) { stop("Tap me whenever you want to talk again 🦉"); break; }
+        if (++misses >= 2) { stop(wakeOn ? "Say “Hey Uli” whenever you need me 👂" : "Tap me whenever you want to talk again 🦉"); break; }
         const m = LINES.miss;
         show(m); await speak(m); continue;
       }
@@ -380,7 +399,69 @@
     root.classList.remove("open");
     if (msg) { show(msg); statusEl.textContent = ""; setTimeout(() => { if (!active && typeForm.hidden) bubble.hidden = true; }, 3500); }
     else if (typeForm.hidden) bubble.hidden = true;
+    setTimeout(startWake, 800);
   };
+
+  /* ---------------- hands-free: "Hey Uli" (opt-in) ---------------- */
+  // Speech engines hear "Uli" many ways, so accept the common spellings.
+  const WAKE = /\b(?:hey|hi|hello|ok|okay|hay)\s*,?\s*(?:uli|ulli|ooli|oolie|uly|ulee|ully|oli|olly|ollie|oly|hooli|holy|julie|uri|ule)\b[\s,.!?-]*(.*)$/i;
+  let wakeOn = false, wakeRec = null, wakeTimer = null;
+  try { wakeOn = !!SR && sessionStorage.getItem("owl-wake") === "1"; } catch {}
+  const wakeBtn = $(".owl-wake");
+  const renderWake = () => {
+    root.classList.toggle("wake-on", wakeOn);
+    wakeBtn.textContent = wakeOn ? "👂 Hands-free is on: say “Hey Uli”" : "🎙️ Hands-free: say “Hey Uli”";
+    wakeBtn.setAttribute("aria-pressed", String(wakeOn));
+    wakeBtn.hidden = !SR;
+  };
+  const stopWake = () => new Promise((res) => {
+    clearTimeout(wakeTimer);
+    if (!wakeRec) return res();
+    const r = wakeRec; wakeRec = null;
+    r.onend = () => res();
+    try { r.abort(); } catch { res(); }
+    setTimeout(res, 500);
+  });
+  const startWake = () => {
+    clearTimeout(wakeTimer);
+    if (!SR || !wakeOn || active || wakeRec || document.hidden) return;
+    const r = new SR();
+    wakeRec = r;
+    r.lang = "en-IN"; r.continuous = true; r.interimResults = false; r.maxAlternatives = 3;
+    r.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (!e.results[i].isFinal) continue;
+        for (let k = 0; k < e.results[i].length; k++) {
+          const m = e.results[i][k].transcript.trim().match(WAKE);
+          if (m) {
+            const rest = (m[1] || "").trim();
+            stopWake().then(() => { if (!active) { typeForm.hidden = true; conversation(rest.split(/\s+/).length >= 2 ? rest : null, true); } });
+            return;
+          }
+        }
+      }
+    };
+    r.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        wakeOn = false;
+        try { sessionStorage.setItem("owl-wake", "0"); } catch {}
+        renderWake();
+        show("I need microphone permission for hands-free mode. You can allow it in the address bar. 🦉");
+      }
+    };
+    r.onend = () => { if (wakeRec === r) { wakeRec = null; wakeTimer = setTimeout(startWake, 700); } };
+    try { r.start(); } catch { wakeRec = null; }
+  };
+  wakeBtn.addEventListener("click", async () => {
+    wakeOn = !wakeOn;
+    try { sessionStorage.setItem("owl-wake", wakeOn ? "1" : "0"); } catch {}
+    renderWake();
+    if (!wakeOn) { await stopWake(); return; }
+    if (!active) { show(LINES.handsOn); await speak(LINES.handsOn); setState("idle"); }
+    startWake();
+  });
+  document.addEventListener("visibilitychange", () => (document.hidden ? stopWake() : startWake()));
+  renderWake();
 
   btn.addEventListener("click", () => {
     if (active) stop();
@@ -409,7 +490,7 @@
   tag.className = "owl-callout";
   tag.hidden = true;
   root.appendChild(tag);
-  const CALLOUTS = ["Psst… I talk! Tap me 🎙️", "I'm Uli — ask me about Anurag 🦉", "Not just decoration. Tap & talk!", "I know his whole resume 👀", "Hiring? Ask me anything ✨", "Tap me — I speak with an Indian accent 😄"];
+  const CALLOUTS = ["Psst… I talk! Tap me 🎙️", "I'm Uli — ask me about Anurag 🦉", "Not just decoration. Tap & talk!", "I know his whole resume 👀", "Hiring? Ask me anything ✨", "Tap me — I speak with an Indian accent 😄", "Try hands-free: say “Hey Uli” 👂"];
   let ci = Math.random() * CALLOUTS.length | 0;
   const callout = () => {
     tag.textContent = CALLOUTS[ci++ % CALLOUTS.length];
@@ -473,7 +554,8 @@
 
   // start a conversation from home base so the bubble always fits
   const _conversation = conversation;
-  conversation = async () => { home(); await new Promise((r) => setTimeout(r, pos.x === innerWidth - SIZE() - 18 ? 0 : 400)); return _conversation(); };
+  conversation = async (...args) => { await stopWake(); home(); await new Promise((r) => setTimeout(r, pos.x === innerWidth - SIZE() - 18 ? 0 : 400)); return _conversation(...args); };
+  setTimeout(startWake, 1500); // resume hands-free if it was on earlier in this visit
 
   /* one-time teaser */
   let teased = false;

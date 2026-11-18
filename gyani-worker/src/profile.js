@@ -29,6 +29,17 @@ SKILLS:
 - Frontend & mobile: React, Next.js, Redux, Tailwind CSS, HTML, CSS, Flutter/Dart.
 - Tools: Git, GitHub, Postman, Swagger/OpenAPI.
 
+AS A PERSON (his own words):
+- A pretty normal guy who loves a good problem.
+- His mindset: "Every problem or situation is a way to new learnings, new exposures and new solutions." Bugs, new tech, a tough match or a tricky game level are all chances to learn, get new exposure and grow.
+- Team player, curious learner, and calm under pressure.
+
 PERSONAL (hobbies, sports, interests):
-- Not shared yet. If asked, say he hasn't added that to my notes yet and suggest asking him directly by email.
+- He's an all-round sportsperson and athlete — if there's a game, he's probably up for it.
+- Fitness: big on fitness — gym and workouts.
+- Outdoor sports: football, cricket and volleyball.
+- Cue sports: pool and snooker.
+- No limits: if he wants to, he can do anything. There is no limit to him learning new things and doing things in any field — sports, games, tech or otherwise.
+- Gaming: a big BGMI (Battlegrounds Mobile India) player; also plays FIFA and Tekken, and is into mobile games and esports in general.
+- Anything else personal (favourite food, movies, music, etc.) hasn't been shared yet — say so and suggest asking him by email.
 `.trim();
