@@ -1,4 +1,4 @@
-/* Gyani — Anurag's wise owl. Eyes follow the pointer; answers by voice or text from resume data.
+/* Uli — Anurag's wise owl. Eyes follow the pointer; answers by voice or text from resume data.
    Everything runs in the browser: no server, no API keys. */
 (() => {
   "use strict";
@@ -10,9 +10,9 @@
   // Each intent: keywords (single words or phrases) and one or more answers.
   const KB = [
     { id: "greet", keys: ["hi", "hello", "hey", "namaste", "hola", "yo", "sup", "good morning", "good evening"],
-      a: ["Namaste! 🦉 I'm Gyani, Anurag's wise little owl. Ask me about his work, skills, projects, or how to reach him."] },
-    { id: "owl", keys: ["who are you", "your name", "what are you", "gyani", "owl", "bot"],
-      a: ["I'm Gyani — gyani means 'the wise one'. Anurag built me into this site, I run entirely in your browser, and I know his resume by heart."] },
+      a: ["Namaste! 🦉 I'm Uli, Anurag's wise little owl. Ask me about his work, skills, projects, or how to reach him."] },
+    { id: "owl", keys: ["who are you", "your name", "what are you", "uli", "uluka", "owl", "bot"],
+      a: ["I'm Uli! My name comes from Uluka, the owl who carries Goddess Lakshmi. Anurag built me into his portfolio, and I know all about his work."] },
     { id: "about", keys: ["who is anurag", "about", "introduce", "tell me about", "summary", "yourself", "him", "anurag"],
       a: ["Anurag Kushwah is a tech all-rounder: backend, frontend, mobile, AI and cloud — if it's tech, he can build it. He has 3+ years of experience shipping scalable systems with Node.js, TypeScript, Python, PostgreSQL, MongoDB, Redis and Kafka, and he's currently a Software Engineer at Animall. Lately he's deep into AI and LLM systems: document ingestion, embeddings, vector search and RAG."] },
     { id: "allround", keys: ["all rounder", "allrounder", "full stack", "fullstack", "frontend", "front end", "mobile", "flutter", "react", "app", "apps", "anything", "everything", "versatile", "generalist", "can he"],
@@ -58,8 +58,8 @@
   ];
   const FALLBACK = "Hmm, that one flew over my feathers. 🦉 I know about Anurag's experience, skills, AI work, projects, education, location and how to contact him — try one of those!";
   const LINES = {
-    hi: "Namaste! I'm Gyani, Anurag's wise owl. Just talk to me — ask what he does, his skills, or how to hire him.",
-    hiNoMic: "Namaste! I'm Gyani. My ears don't work in this browser, so please type your question below.",
+    hi: "Namaste! I'm Uli, Anurag's wise owl. Just talk to me — ask what he does, his skills, or how to hire him.",
+    hiNoMic: "Namaste! I'm Uli. My ears don't work in this browser, so please type your question below.",
     mic: "I need microphone permission to hear you. Allow it in the address bar, or type instead.",
     miss: "I didn't catch that. Try again?",
   };
@@ -137,7 +137,7 @@
       <div class="owl-status"></div>
       <div class="owl-caption"></div>
       <form class="owl-type" autocomplete="off" hidden>
-        <input class="owl-in" placeholder="Type your question…" aria-label="Ask Gyani a question" />
+        <input class="owl-in" placeholder="Type your question…" aria-label="Ask Uli a question" />
         <button aria-label="Ask">↑</button>
       </form>
       <div class="owl-actions">
@@ -145,7 +145,7 @@
         <button class="owl-stop" type="button">■ stop</button>
       </div>
     </div>
-    <button class="owl-btn" aria-label="Talk to Gyani, Anurag's owl. Tap and speak.">${OWL_SVG}<span class="owl-ring"></span></button>`;
+    <button class="owl-btn" aria-label="Talk to Uli, Anurag's owl. Tap and speak.">${OWL_SVG}<span class="owl-ring"></span></button>`;
   document.body.appendChild(root);
 
   const $ = (s) => root.querySelector(s);
@@ -180,7 +180,7 @@
   setTimeout(blink, 2000);
 
   /* state + bubble */
-  const LABELS = { listening: "🎙️ Listening… just talk", thinking: "🦉 Thinking…", speaking: "🔊 Gyani", idle: "" };
+  const LABELS = { listening: "🎙️ Listening… just talk", thinking: "🦉 Thinking…", speaking: "🔊 Uli", idle: "" };
   const setState = (s) => {
     root.dataset.state = s;
     lookOverride = s === "thinking" ? [2, -4] : null;
@@ -256,7 +256,7 @@
 
   /* ---------------- smart answers (Gemini via Cloudflare Worker) ---------------- */
   // Set to the deployed worker's /chat URL. Empty = built-in answers only.
-  const AI_URL = "";
+  const AI_URL = "https://gyani.anuragkushwah134.workers.dev/chat";
   const history = []; // [{role: "user"|"model", text}]
   const LOCAL_FIRST = new Set(["greet", "bye", "thanks", "owl", "joke"]); // instant, recorded-voice replies
   const askAI = async (q) => {
@@ -366,7 +366,7 @@
   tag.className = "owl-callout";
   tag.hidden = true;
   root.appendChild(tag);
-  const CALLOUTS = ["Psst… I talk! Tap me 🎙️", "I'm Gyani — ask me about Anurag 🦉", "Not just decoration. Tap & talk!", "I know his whole resume 👀", "Hiring? Ask me anything ✨", "Tap me — I speak with an Indian accent 😄"];
+  const CALLOUTS = ["Psst… I talk! Tap me 🎙️", "I'm Uli — ask me about Anurag 🦉", "Not just decoration. Tap & talk!", "I know his whole resume 👀", "Hiring? Ask me anything ✨", "Tap me — I speak with an Indian accent 😄"];
   let ci = Math.random() * CALLOUTS.length | 0;
   const callout = () => {
     tag.textContent = CALLOUTS[ci++ % CALLOUTS.length];

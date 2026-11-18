@@ -393,7 +393,7 @@
   projects      things I've shipped
   skills        the stack
   contact       get in touch
-  owl [question] ask Gyani, the wise owl
+  owl [question] ask Uli, the wise owl
   github | linkedin | twitter
   ls, cat, date, echo, history, clear, exit
   <span class="vio">secrets</span>     sudo hire-me · coffee · chaos · matrix`,
@@ -462,7 +462,7 @@ front     React Next.js Redux Tailwind Flutter`,
     { label: "Open GitHub", hint: "link", run: () => { close(); open_(LINKS.github); } },
     { label: "Open LinkedIn", hint: "link", run: () => { close(); open_(LINKS.linkedin); } },
     { label: "Open terminal", hint: "~", run: () => open("terminal") },
-    { label: "Talk to Gyani the owl", hint: "voice", run: () => { close(); window.openOwl && window.openOwl(); } },
+    { label: "Talk to Uli the owl", hint: "voice", run: () => { close(); window.openOwl && window.openOwl(); } },
     { label: "Filter work: AI / LLM", hint: "filter", run: () => { filterTo("ai"); go("#work"); } },
     { label: "Toggle chaos mode", hint: "secret", run: () => { close(); toggleChaos(); } },
     { label: "Make it rain", hint: "secret", run: () => { close(); confetti(); } },

@@ -1,5 +1,5 @@
-// Everything Gyani knows about Anurag. Edit this file to change what the owl can talk about,
-// then redeploy with `npx wrangler deploy`. Keep it factual: Gyani is told never to invent anything.
+// Everything Uli knows about Anurag. Edit this file to change what the owl can talk about,
+// then redeploy with `npx wrangler deploy`. Keep it factual: Uli is told never to invent anything.
 export const PROFILE = `
 NAME: Anurag Kushwah (also spelled Anuraag). Pronouns: he/him.
 HEADLINE: Tech all-rounder and software engineer. Backend, frontend, mobile, AI/LLM and cloud — if it's tech, he can build it. "Give me a problem, not a stack."
