@@ -554,3 +554,11 @@ front     React Next.js Redux Tailwind Flutter`,
   console.log("%c hey, you found the console 👀 ", "background:#c6ff3d;color:#07070a;font:600 14px monospace;padding:6px 10px;border-radius:6px");
   console.log("%cpress ` to open the terminal, or just email " + EMAIL, "color:#8b6cff;font:12px monospace");
 })();
+
+// frosted nav once the page scrolls
+(() => {
+  const nav = document.querySelector(".nav");
+  const onScroll = () => nav.classList.toggle("scrolled", scrollY > 40);
+  addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+})();

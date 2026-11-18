@@ -389,3 +389,71 @@ body.lock-cursor input, body.lock-cursor textarea { cursor: text; }
 .owl-root.flying .owl-callout, .owl-root.open .owl-callout { display: none; }
 @keyframes callout { from { transform: scale(.6); opacity: 0; } }
 @media (max-width: 520px) { .owl-callout { white-space: normal; width: 150px; } }
+
+/* ================= responsive: phone ≤600 · tablet 601–1024 · desktop >1024 ================= */
+.cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.orbit { width: min(86vw, 640px); }
+.menu-label { display: none; }
+
+/* tablet */
+@media (min-width: 601px) and (max-width: 1024px) {
+  .nav-links { display: flex; gap: 18px; }
+  .about-grid { grid-template-columns: minmax(200px, 260px) 1fr; gap: 32px; }
+  .photo { max-width: none; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .span-row { grid-template-columns: minmax(160px, 38%) 1fr; gap: 12px; }
+  .hero-title { font-size: clamp(56px, 10vw, 104px); }
+  .orbit { width: min(78vw, 600px); }
+  .planet span { font-size: 11px; padding: 5px 9px; }
+  .stack-list { grid-template-columns: repeat(2, 1fr); }
+  .hint { display: block; }
+}
+
+/* phone */
+@media (max-width: 600px) {
+  :root { --pad: 18px; }
+  .nav { padding: 12px var(--pad); }
+  .nav-links { display: none; }
+  .kbd-btn kbd { display: none; }
+  .menu-label { display: inline; }
+  .hero { padding: 96px var(--pad) 72px; align-items: flex-start; }
+  .hero-inner { padding-top: 6vh; }
+  .hero-title { font-size: clamp(42px, 13vw, 60px); margin: 22px 0 18px; }
+  .hero-sub { font-size: 16px; }
+  .hero-cta .btn { flex: 1 1 100%; justify-content: center; }
+  .marquee span { font-size: 22px; }
+  .section { padding: 72px var(--pad); }
+  .big { font-size: clamp(30px, 9vw, 40px); }
+  .mega { font-size: clamp(46px, 15vw, 72px); }
+  .about-grid { grid-template-columns: 1fr; gap: 28px; }
+  .photo { max-width: 100%; aspect-ratio: 1 / 1; }
+  .about-copy p { font-size: 16px; }
+  .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat { padding: 14px; }
+  .trace { font-size: 12px; }
+  .span-row { grid-template-columns: 1fr; gap: 6px; padding: 10px 14px; }
+  .inspector { font-size: 11px; padding: 14px; }
+  .card { padding: 20px; min-height: 0; }
+  .card h3 { font-size: 22px; }
+  .orbit { width: 72vw; }
+  .core { width: 76px; height: 76px; font-size: 13px; }
+  .planet span { font-size: 9px; padding: 4px 7px; }
+  .stack-list { grid-template-columns: 1fr; }
+  .contact-row .big-btn { width: 100%; justify-content: center; font-size: 15px; padding: 18px 16px; }
+  .socials { gap: 20px; }
+  .socials a { font-size: 16px; }
+  .footer { flex-direction: column; text-align: center; align-items: center; }
+  .term { height: 78svh; font-size: 13px; }
+  .pal { margin-top: 10vh; }
+  .owl-btn { width: 60px; height: 66px; }
+  .owl-bubble { width: calc(100vw - 24px); }
+  .owl-root.b-left .owl-bubble, .owl-root .owl-bubble { max-width: calc(100vw - 24px); }
+}
+
+/* big desktops */
+@media (min-width: 1600px) {
+  .hero-inner { max-width: 1300px; }
+  .section { max-width: 1520px; }
+}
+.nav { transition: background .3s, backdrop-filter .3s; }
+.nav.scrolled { background: rgba(7,7,10,.78); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(34,34,44,.6); }

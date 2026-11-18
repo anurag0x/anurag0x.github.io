@@ -393,6 +393,8 @@
       if (r < 0.35) { x = Math.random() < 0.5 ? margin : innerWidth - s - margin; y = 90 + Math.random() * (innerHeight - s - 120); }
       else if (r < 0.75) { x = margin + Math.random() * (innerWidth - s - margin * 2); y = innerHeight - s - 18; }
       else { x = margin + Math.random() * (innerWidth - s - margin * 2); y = 90 + Math.random() * (innerHeight - s - 120); }
+      // on phones keep to the lower part of the screen so it never covers what you are reading
+      if (innerWidth <= 600) y = innerHeight - s - 18 - Math.random() * Math.min(160, innerHeight * 0.2);
       moveTo(x, y);
     }
     setTimeout(wander, 7000 + Math.random() * 6000);
