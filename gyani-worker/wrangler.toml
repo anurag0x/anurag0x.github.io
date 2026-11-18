@@ -1,0 +1,9 @@
+name = "gyani"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[vars]
+# Change the model without touching code. The API key is a secret: set it in the
+# Cloudflare dashboard (Workers → gyani → Settings → Variables and Secrets → GEMINI_API_KEY).
+GEMINI_MODEL = "gemini-flash-lite-latest"

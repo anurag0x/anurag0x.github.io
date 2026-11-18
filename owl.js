@@ -93,7 +93,7 @@
       if (score > bestScore) { bestScore = score; best = intent; }
     }
     if (!best) return { text: FALLBACK };
-    return { text: best.a[Math.random() * best.a.length | 0], act: best.act };
+    return { id: best.id, text: best.a[Math.random() * best.a.length | 0], act: best.act };
   };
 
   /* ---------------- markup ---------------- */
@@ -196,7 +196,7 @@
     if (!synth) return;
     const vs = synth.getVoices();
     voice =
-      vs.find((v) => /en[-_]IN/i.test(v.lang) && /Rishi|Prabhat|Ravi|Neel|Male/i.test(v.name)) ||
+      vs.find((v) => /en[-_]IN/i.test(v.lang) && /Tara|Veena|Neerja|Heera|Isha|Kajal|Female/i.test(v.name)) ||
       vs.find((v) => /en[-_]IN/i.test(v.lang)) ||
       vs.find((v) => /India|Rishi|Veena|Prabhat|Neerja|Heera|Ravi/i.test(v.name)) ||
       vs.find((v) => /^en/i.test(v.lang)) || null;
@@ -215,10 +215,10 @@
     a.onerror = () => resolve(started ? true : false);
     a.play().catch(() => resolve(false));
   });
-  const speak = (text) => new Promise(async (done) => {
+  const speak = (text, recorded = true) => new Promise(async (done) => {
     const clean = spoken(text);
     setState("speaking");
-    if (await playClip(clean)) return done();
+    if (recorded && await playClip(clean)) return done();
     if (!active && root.dataset.state !== "speaking") return done();
     if (!synth) { setTimeout(done, Math.min(4000, 600 + clean.length * 25)); return; }
     synth.cancel();
@@ -254,14 +254,41 @@
     try { rec.start(); } catch { resolve({ error: "busy" }); }
   });
 
+  /* ---------------- smart answers (Gemini via Cloudflare Worker) ---------------- */
+  // Set to the deployed worker's /chat URL. Empty = built-in answers only.
+  const AI_URL = "";
+  const history = []; // [{role: "user"|"model", text}]
+  const LOCAL_FIRST = new Set(["greet", "bye", "thanks", "owl", "joke"]); // instant, recorded-voice replies
+  const askAI = async (q) => {
+    if (!AI_URL) return null;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 9000);
+    try {
+      const r = await fetch(AI_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [...history.slice(-8), { role: "user", text: q }] }),
+        signal: ctrl.signal,
+      });
+      if (!r.ok) return null;
+      const d = await r.json();
+      return typeof d.reply === "string" && d.reply.trim() ? d.reply.trim() : null;
+    } catch { return null; } finally { clearTimeout(t); }
+  };
+
   const respond = async (q) => {
     setState("thinking");
     show("“" + q + "”");
-    await new Promise((r) => setTimeout(r, 350));
-    const { text, act } = answer(q);
+    const local = answer(q);
+    let text = null, act, fromAI = false;
+    if (!(local.id && LOCAL_FIRST.has(local.id))) { text = await askAI(q); fromAI = !!text; }
+    if (!text) { text = local.text; act = local.act; }
+    else if (/\b(email|contact|reach|hire)\b/i.test(q)) act = "copy";
+    history.push({ role: "user", text: q }, { role: "model", text });
+    if (history.length > 16) history.splice(0, history.length - 16);
     show(text);
     if (act === "copy") { try { await navigator.clipboard.writeText(EMAIL); } catch {} }
-    await speak(text);
+    await speak(text, !fromAI);
     return act;
   };
 
