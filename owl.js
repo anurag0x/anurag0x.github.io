@@ -204,6 +204,7 @@
     const vs = synth.getVoices();
     voice =
       vs.find((v) => /en[-_]IN/i.test(v.lang) && /Tara|Veena|Neerja|Heera|Isha|Kajal|Female/i.test(v.name)) ||
+      vs.find((v) => /hi[-_]IN/i.test(v.lang) && /Lekha/i.test(v.name)) || // female Indian voice on Apple devices
       vs.find((v) => /en[-_]IN/i.test(v.lang)) ||
       vs.find((v) => /India|Rishi|Veena|Prabhat|Neerja|Heera|Ravi/i.test(v.name)) ||
       vs.find((v) => /^en/i.test(v.lang)) || null;
@@ -225,20 +226,47 @@
     a.onerror = () => resolve(started);
     a.play().catch(() => resolve(false));
   });
+  // Chrome's speech engine sometimes gets stuck after a few utterances (it says it is
+  // speaking but nothing plays) and cuts long ones off after ~15 s. So: keep the utterance
+  // referenced, nudge it with pause/resume while it talks, and restart it if it never starts.
+  let utter = null;
   const browserSpeak = (clean, token) => new Promise((done) => {
     if (token !== speakToken) return done();
     setState("speaking");
     if (!synth) { setTimeout(done, Math.min(4000, 600 + clean.length * 25)); return; }
-    synth.cancel();
-    const u = new SpeechSynthesisUtterance(clean);
-    if (voice) u.voice = voice;
-    u.lang = voice ? voice.lang : "en-IN";
-    u.rate = 0.98; u.pitch = 1.0;
-    let finished = false;
-    const end = () => { if (!finished) { finished = true; done(); } };
-    u.onend = u.onerror = end;
-    setTimeout(end, 1500 + clean.length * 90); // Safari sometimes never fires onend
-    synth.speak(u);
+    let finished = false, started = false, retried = false, keepAlive = null, watchdog = null;
+    const end = () => {
+      if (finished) return;
+      finished = true; clearInterval(keepAlive); clearTimeout(watchdog); clearTimeout(maxT);
+      done();
+    };
+    const say = () => {
+      const u = new SpeechSynthesisUtterance(clean);
+      utter = u;
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : "en-IN";
+      u.rate = 0.98; u.pitch = 1.0;
+      u.onstart = () => {
+        started = true; clearTimeout(watchdog);
+        clearInterval(keepAlive);
+        keepAlive = setInterval(() => {
+          if (token !== speakToken || !synth.speaking) return clearInterval(keepAlive);
+          synth.pause(); synth.resume();
+        }, 10000);
+      };
+      u.onend = () => { if (utter === u) end(); };
+      u.onerror = (e) => { if (utter === u && e.error !== "interrupted" && e.error !== "canceled") end(); };
+      if (synth.speaking || synth.pending || synth.paused) synth.cancel();
+      synth.resume();
+      synth.speak(u);
+      // Never started? Reset the engine and try once more.
+      watchdog = setTimeout(() => {
+        if (started || finished || token !== speakToken) return;
+        if (!retried) { retried = true; synth.cancel(); setTimeout(say, 120); } else end();
+      }, 2500);
+    };
+    const maxT = setTimeout(end, 4000 + clean.length * 95); // Safari sometimes never fires onend
+    say();
   });
   const chunkText = (t) => {
     const sentences = (t.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) || [t]).map((x) => x.trim()).filter(Boolean);
@@ -249,15 +277,27 @@
     if (cur) out.push(cur);
     return out;
   };
+  // When the free natural-voice quota runs out, stop asking for it for a while so answers
+  // go straight to the browser voice instead of waiting on requests that will fail.
+  const VOICE_PAUSE_MS = 15 * 60 * 1000;
+  let voiceDownUntil = 0;
+  try { voiceDownUntil = Number(sessionStorage.getItem("owl-voice-down")) || 0; } catch {}
+  const markVoiceDown = () => {
+    voiceDownUntil = Date.now() + VOICE_PAUSE_MS;
+    try { sessionStorage.setItem("owl-voice-down", String(voiceDownUntil)); } catch {}
+  };
   const fetchVoice = (text) => {
     const url = typeof AI_URL === "string" && AI_URL ? AI_URL.replace(/\/chat$/, "/speak") : "";
-    if (!url) return Promise.resolve(null);
+    if (!url || Date.now() < voiceDownUntil) return Promise.resolve(null);
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 20000);
+    const t = setTimeout(() => ctrl.abort(), 10000);
     return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal: ctrl.signal })
-      .then((r) => (r.ok ? r.blob() : null)).catch(() => null).finally(() => clearTimeout(t));
+      .then((r) => { if (r.ok) return r.blob(); if (r.status === 502 || r.status === 429) markVoiceDown(); return null; })
+      .catch(() => { markVoiceDown(); return null; })
+      .finally(() => clearTimeout(t));
   };
   const naturalSpeak = async (clean, token) => {
+    if (Date.now() < voiceDownUntil) return false;
     const parts = chunkText(clean);
     const jobs = parts.map(fetchVoice); // fetch all sentences at once, play them in order
     for (let i = 0; i < parts.length; i++) {
