@@ -199,8 +199,79 @@
   /* voice out: Gemini's natural female Indian voice ONLY (via the worker's /speak).
      No browser voices and no other recordings, so Uli always sounds the same.
      If the voice is unavailable (free quota used up, offline), she answers in text only. */
-  let audio = null, speakToken = 0;
-  const stopAudio = () => { speakToken++; if (audio) { audio.pause(); audio = null; } };
+  let audio = null, speakToken = 0, stopStream = null;
+  const stopAudio = () => {
+    speakToken++;
+    if (audio) { audio.pause(); audio = null; }
+    if (stopStream) { stopStream(); stopStream = null; }
+  };
+
+  // Streamed voice: the worker forwards raw 16-bit PCM as Gemini produces it, and we
+  // play each piece the moment it arrives (Web Audio), so Uli starts talking ~1 s in.
+  let actx = null;
+  const audioCtx = () => {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!actx) actx = new AC();
+    if (actx.state === "suspended") actx.resume().catch(() => {});
+    return actx;
+  };
+  // browsers only allow audio after a tap/click, so wake the audio engine on the first one
+  ["pointerdown", "keydown"].forEach((t) => document.addEventListener(t, () => { if (window.AudioContext || window.webkitAudioContext) audioCtx(); }, { passive: true }));
+  const playStream = (res, token) => new Promise(async (resolve) => {
+    const ctx = audioCtx();
+    if (!ctx || !res.body) return resolve(false);
+    const rate = Number((res.headers.get("Content-Type") || "").match(/rate=(\d+)/)?.[1]) || 24000;
+    const reader = res.body.getReader();
+    const sources = [];
+    let nextT = 0, played = false, carry = null, pending = [], pendingLen = 0, stopped = false;
+    const finish = (ok) => { if (stopStream === stop) stopStream = null; resolve(ok); };
+    const stop = () => { stopped = true; reader.cancel().catch(() => {}); sources.forEach((s) => { try { s.stop(); } catch {} }); finish(true); };
+    stopStream = stop;
+    const schedule = (floats) => {
+      const buf = ctx.createBuffer(1, floats.length, rate);
+      buf.getChannelData(0).set(floats);
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.connect(ctx.destination);
+      const at = Math.max(nextT, ctx.currentTime + 0.06);
+      src.start(at);
+      nextT = at + buf.duration;
+      sources.push(src);
+      if (!played) { played = true; setState("speaking"); }
+    };
+    const flush = () => {
+      if (!pendingLen) return;
+      const out = new Float32Array(pendingLen);
+      let o = 0; for (const f of pending) { out.set(f, o); o += f.length; }
+      pending = []; pendingLen = 0;
+      schedule(out);
+    };
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (stopped || token !== speakToken) return stop();
+        if (done) break;
+        let bytes = value;
+        if (carry) { const m = new Uint8Array(carry.length + bytes.length); m.set(carry); m.set(bytes, carry.length); bytes = m; carry = null; }
+        if (bytes.length % 2) { carry = bytes.slice(-1); bytes = bytes.slice(0, -1); }
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        const f = new Float32Array(bytes.length / 2);
+        for (let i = 0; i < f.length; i++) f[i] = view.getInt16(i * 2, true) / 32768;
+        pending.push(f); pendingLen += f.length;
+        // gather ~0.25 s before the first sound so it doesn't stutter, then play as it comes
+        if (played || pendingLen >= rate * 0.25) flush();
+      }
+      flush();
+    } catch { if (!played) return finish(false); }
+    if (!played) return finish(false);
+    const wait = () => {
+      if (stopped || token !== speakToken) return;
+      const left = nextT - ctx.currentTime;
+      if (left <= 0.02) return finish(true);
+      setTimeout(wait, Math.min(250, left * 1000));
+    };
+    wait();
+  });
   const playUrl = (src, token) => new Promise((resolve) => {
     if (token !== speakToken) return resolve(true);
     const a = new Audio(src);
@@ -226,9 +297,13 @@
     if (!url || Date.now() < voiceDownUntil) return Promise.resolve(null);
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 15000);
-    return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal: ctrl.signal })
+    const stream = !!(window.AudioContext || window.webkitAudioContext);
+    return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, stream }), signal: ctrl.signal })
       .then(async (r) => {
-        if (r.ok) return r.blob();
+        if (r.ok) {
+          clearTimeout(t); // the voice may stream for longer than the timeout
+          return /audio\/L16/i.test(r.headers.get("Content-Type") || "") ? r : r.blob();
+        }
         // pause the voice only when the daily quota is really used up, not on a one-off hiccup
         const err = await r.json().catch(() => ({}));
         if (err.error === "quota") markVoiceDown();
@@ -262,7 +337,9 @@
     if (audio) { audio.pause(); audio = null; }
     const blob = await fetchVoice(clean);
     if (token !== speakToken) return;
-    if (blob) {
+    if (blob instanceof Response) {
+      if (await playStream(blob, token)) return;
+    } else if (blob) {
       const src = URL.createObjectURL(blob);
       const ok = await playUrl(src, token);
       URL.revokeObjectURL(src);
@@ -393,9 +470,9 @@
 
   /* ---------------- hands-free: "Hey Uli" (opt-in) ---------------- */
   // Speech engines hear "Uli" many ways, so accept the common spellings.
-  const WAKE = /\b(?:hey|hi|hello|ok|okay|hay)\s*,?\s*(?:uli|ulli|ooli|oolie|uly|ulee|ully|oli|olly|ollie|oly|hooli|holy|julie|uri|ule)\b[\s,.!?-]*(.*)$/i;
+  const WAKE = /\b(?:hey|hi|hello|ok|okay|hay)\s*,?\s*(?:uli|ulli|ooli|oolie|oolee|uly|ulee|ulie|uley|ully|oli|olly|ollie|oly|hooli|huli|holy|julie|juli|uri|ule|u\s?li|u\s?lee|you\s?li|you\s?lee|lee|li|ali|lily|lilly)\b[\s,.!?-]*(.*)$/i;
   let wakeOn = false, wakeRec = null, wakeTimer = null;
-  try { wakeOn = !!SR && sessionStorage.getItem("owl-wake") === "1"; } catch {}
+  try { wakeOn = !!SR && localStorage.getItem("owl-wake") === "1"; } catch {}
   const wakeBtn = $(".owl-wake");
   const renderWake = () => {
     root.classList.toggle("wake-on", wakeOn);
@@ -420,6 +497,7 @@
     r.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (!e.results[i].isFinal) continue;
+        console.debug("[Uli] heard:", [...e.results[i]].map((x) => x.transcript.trim()).join(" | "));
         for (let k = 0; k < e.results[i].length; k++) {
           const m = e.results[i][k].transcript.trim().match(WAKE);
           if (m) {
@@ -431,9 +509,10 @@
       }
     };
     r.onerror = (e) => {
+      if (e.error !== "no-speech" && e.error !== "aborted") console.debug("[Uli] hands-free error:", e.error);
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         wakeOn = false;
-        try { sessionStorage.setItem("owl-wake", "0"); } catch {}
+        try { localStorage.setItem("owl-wake", "0"); } catch {}
         renderWake();
         show("I need microphone permission for hands-free mode. You can allow it in the address bar. 🦉");
       }
@@ -443,7 +522,7 @@
   };
   wakeBtn.addEventListener("click", async () => {
     wakeOn = !wakeOn;
-    try { sessionStorage.setItem("owl-wake", wakeOn ? "1" : "0"); } catch {}
+    try { localStorage.setItem("owl-wake", wakeOn ? "1" : "0"); } catch {}
     renderWake();
     if (!wakeOn) { await stopWake(); return; }
     if (!active) { show(LINES.handsOn); await speak(LINES.handsOn); setState("idle"); }
@@ -544,7 +623,7 @@
   // start a conversation from home base so the bubble always fits
   const _conversation = conversation;
   conversation = async (...args) => { await stopWake(); home(); await new Promise((r) => setTimeout(r, pos.x === innerWidth - SIZE() - 18 ? 0 : 400)); return _conversation(...args); };
-  setTimeout(startWake, 1500); // resume hands-free if it was on earlier in this visit
+  setTimeout(startWake, 1500); // resume hands-free if it was turned on before
 
   /* one-time teaser */
   let teased = false;

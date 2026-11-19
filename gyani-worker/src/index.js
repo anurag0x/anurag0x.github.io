@@ -148,7 +148,109 @@ export async function synthesize(env, text, fetchImpl = fetch) {
   throw lastErr || new Error("tts unavailable");
 }
 
-async function speakHandler(body, env, origin, request) {
+/* Streaming: Gemini sends the voice in pieces (server-sent events) as it is generated, so Uli
+   can start talking about a second in instead of waiting for the whole clip. Same model, same
+   free quota: one request per reply. */
+async function* sseEvents(body) {
+  const reader = body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (value) buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.search(/\r?\n\r?\n/)) >= 0) {
+      const raw = buf.slice(0, i);
+      buf = buf.slice(i).replace(/^\r?\n\r?\n/, "");
+      const data = raw.split(/\r?\n/).filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim()).join("");
+      if (data) { try { yield JSON.parse(data); } catch {} }
+    }
+    if (done) return;
+  }
+}
+
+const b64ToBytes = (b64) => {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+};
+const audioOf = (ev) => (ev?.candidates?.[0]?.content?.parts || []).filter((p) => p.inlineData?.data);
+
+// Resolves once the first piece of audio has arrived (retrying once if Gemini sends none).
+export async function openVoiceStream(env, text, fetchImpl = fetch) {
+  const model = env.TTS_MODEL || "gemini-2.5-flash-preview-tts";
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const res = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `${STYLE}\n\n${text}` }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: env.TTS_VOICE || "Sulafat" } } },
+        },
+      }),
+    });
+    if (!res.ok) {
+      console.error("tts stream upstream", model, res.status, (await res.text()).slice(0, 400));
+      throw Object.assign(new Error(`tts ${res.status}`), { status: res.status });
+    }
+    const events = sseEvents(res.body);
+    // read by hand: leaving a for-await loop early would close the stream we still need
+    for (let r = await events.next(); !r.done; r = await events.next()) {
+      const parts = audioOf(r.value);
+      if (!parts.length) continue;
+      const rate = Number((parts[0].inlineData.mimeType || "").match(/rate=(\d+)/)?.[1]) || 24000;
+      return { rate, first: parts.map((p) => b64ToBytes(p.inlineData.data)), events };
+    }
+    console.error("tts stream no audio", model, attempt);
+    if (attempt === 2) throw new Error("no audio");
+  }
+}
+
+async function speakStream(env, text, origin, ctx, cache, key) {
+  let opened;
+  try {
+    opened = await openVoiceStream(env, text);
+  } catch (e) {
+    if (e.status === 429) return json({ error: "quota" }, 502, origin);
+    // streaming didn't work this time: fall back to the one-shot voice rather than staying silent
+    try {
+      const wav = await synthesize(env, text);
+      if (cache) await cache.put(key, new Response(wav, { headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=2592000" } }));
+      return new Response(wav, { headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=604800", ...cors(origin) } });
+    } catch (e2) {
+      return json({ error: e2.status === 429 ? "quota" : "upstream" }, 502, origin);
+    }
+  }
+  const { rate, first, events } = opened;
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const pump = (async () => {
+    const all = [];
+    const put = async (bytes) => { all.push(bytes); await writer.write(bytes); };
+    try {
+      for (const b of first) await put(b);
+      for await (const ev of events) for (const p of audioOf(ev)) await put(b64ToBytes(p.inlineData.data));
+      await writer.close();
+      // keep a full copy at the edge so the same line is free next time
+      const total = all.reduce((n, b) => n + b.length, 0);
+      const pcm = new Uint8Array(total);
+      let o = 0; for (const b of all) { pcm.set(b, o); o += b.length; }
+      if (cache) await cache.put(key, new Response(pcmToWav(pcm, rate), { headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=2592000" } }));
+    } catch (e) {
+      console.error("tts stream broke", String(e));
+      try { await writer.abort(e); } catch {}
+    }
+  })();
+  if (ctx?.waitUntil) ctx.waitUntil(pump);
+  return new Response(readable, {
+    headers: { "Content-Type": `audio/L16;rate=${rate};channels=1`, "Cache-Control": "no-store", ...cors(origin) },
+  });
+}
+
+async function speakHandler(body, env, origin, request, ctx) {
   const text = typeof body?.text === "string" ? body.text.replace(/\s+/g, " ").trim().slice(0, MAX_SPEAK) : "";
   if (!text) return json({ error: "bad request" }, 400, origin);
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
@@ -162,6 +264,7 @@ async function speakHandler(body, env, origin, request) {
   if (hit) return new Response(hit.body, { headers });
 
   if (rateLimited(ip + ":speak")) return json({ error: "slow down" }, 429, origin);
+  if (body.stream === true) return speakStream(env, text, origin, ctx, cache, key);
   try {
     const wav = await synthesize(env, text);
     if (cache) await cache.put(key, new Response(wav, { headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=2592000" } }));
@@ -172,7 +275,7 @@ async function speakHandler(body, env, origin, request) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get("Origin") || "";
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
@@ -183,7 +286,7 @@ export default {
     let body;
     try { body = await request.json(); } catch { return json({ error: "bad json" }, 400, origin); }
 
-    if (url.pathname === "/speak") return speakHandler(body, env, origin, request);
+    if (url.pathname === "/speak") return speakHandler(body, env, origin, request, ctx);
 
     const ip = request.headers.get("CF-Connecting-IP") || "unknown";
     if (rateLimited(ip)) return json({ error: "slow down" }, 429, origin);
