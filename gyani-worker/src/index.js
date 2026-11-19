@@ -109,30 +109,41 @@ export function pcmToWav(pcm, rate = 24000) {
 }
 
 export async function synthesize(env, text, fetchImpl = fetch) {
-  const models = [env.TTS_MODEL, "gemini-2.5-flash-preview-tts", "gemini-2.5-flash-tts"].filter(Boolean);
+  const models = [...new Set([env.TTS_MODEL, "gemini-2.5-flash-preview-tts", "gemini-2.5-flash-tts"].filter(Boolean))];
   let lastErr;
-  for (const model of [...new Set(models)]) {
-    const res = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `${STYLE}\n\n${text}` }] }],
-        generationConfig: {
-          responseModalities: ["AUDIO"],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: env.TTS_VOICE || "Sulafat" } } },
-        },
-      }),
-    });
-    if (res.status === 404) { lastErr = Object.assign(new Error("no model"), { status: 404 }); continue; }
-    if (!res.ok) throw Object.assign(new Error(`tts ${res.status}`), { status: res.status });
-    const data = await res.json();
-    const part = (data.candidates?.[0]?.content?.parts || []).find((p) => p.inlineData?.data);
-    if (!part) throw new Error("no audio");
-    const rate = Number((part.inlineData.mimeType || "").match(/rate=(\d+)/)?.[1]) || 24000;
-    const bin = atob(part.inlineData.data);
-    const pcm = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) pcm[i] = bin.charCodeAt(i);
-    return pcmToWav(pcm, rate);
+  for (const model of models) {
+    // The preview voice model sometimes replies with no audio (finishReason "OTHER"): try it once more.
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const res = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${STYLE}\n\n${text}` }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: env.TTS_VOICE || "Sulafat" } } },
+          },
+        }),
+      });
+      if (res.status === 404) { lastErr = Object.assign(new Error("no model"), { status: 404 }); break; }
+      if (!res.ok) {
+        console.error("tts upstream", model, res.status, (await res.text()).slice(0, 400));
+        throw Object.assign(new Error(`tts ${res.status}`), { status: res.status });
+      }
+      const data = await res.json();
+      const part = (data.candidates?.[0]?.content?.parts || []).find((p) => p.inlineData?.data);
+      if (!part) {
+        console.error("tts no audio", model, attempt, JSON.stringify(data).slice(0, 300));
+        lastErr = new Error("no audio");
+        if (attempt === 2) throw lastErr;
+        continue;
+      }
+      const rate = Number((part.inlineData.mimeType || "").match(/rate=(\d+)/)?.[1]) || 24000;
+      const bin = atob(part.inlineData.data);
+      const pcm = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) pcm[i] = bin.charCodeAt(i);
+      return pcmToWav(pcm, rate);
+    }
   }
   throw lastErr || new Error("tts unavailable");
 }

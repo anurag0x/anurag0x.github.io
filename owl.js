@@ -196,26 +196,11 @@
   const show = (text) => { bubble.hidden = false; if (text !== undefined) caption.textContent = text; };
   setState("idle");
 
-  /* voice out: Indian English */
-  const synth = window.speechSynthesis;
-  let voice = null;
-  const pickVoice = () => {
-    if (!synth) return;
-    const vs = synth.getVoices();
-    voice =
-      vs.find((v) => /en[-_]IN/i.test(v.lang) && /Tara|Veena|Neerja|Heera|Isha|Kajal|Female/i.test(v.name)) ||
-      vs.find((v) => /hi[-_]IN/i.test(v.lang) && /Lekha/i.test(v.name)) || // female Indian voice on Apple devices
-      vs.find((v) => /en[-_]IN/i.test(v.lang)) ||
-      vs.find((v) => /India|Rishi|Veena|Prabhat|Neerja|Heera|Ravi/i.test(v.name)) ||
-      vs.find((v) => /^en/i.test(v.lang)) || null;
-  };
-  if (synth) { pickVoice(); synth.onvoiceschanged = pickVoice; }
-  // Voice, best first:
-  //  1. pre-recorded clips for fixed lines (greeting, thanks, jokes…) — instant
-  //  2. natural Gemini voice from the worker's /speak, sentence by sentence (cached at the edge)
-  //  3. the browser's own Indian English voice, if both of the above are unavailable
+  /* voice out: Gemini's natural female Indian voice ONLY (via the worker's /speak).
+     No browser voices and no other recordings, so Uli always sounds the same.
+     If the voice is unavailable (free quota used up, offline), she answers in text only. */
   let audio = null, speakToken = 0;
-  const stopAudio = () => { speakToken++; if (audio) { audio.pause(); audio = null; } if (synth) synth.cancel(); };
+  const stopAudio = () => { speakToken++; if (audio) { audio.pause(); audio = null; } };
   const playUrl = (src, token) => new Promise((resolve) => {
     if (token !== speakToken) return resolve(true);
     const a = new Audio(src);
@@ -226,59 +211,7 @@
     a.onerror = () => resolve(started);
     a.play().catch(() => resolve(false));
   });
-  // Chrome's speech engine sometimes gets stuck after a few utterances (it says it is
-  // speaking but nothing plays) and cuts long ones off after ~15 s. So: keep the utterance
-  // referenced, nudge it with pause/resume while it talks, and restart it if it never starts.
-  let utter = null;
-  const browserSpeak = (clean, token) => new Promise((done) => {
-    if (token !== speakToken) return done();
-    setState("speaking");
-    if (!synth) { setTimeout(done, Math.min(4000, 600 + clean.length * 25)); return; }
-    let finished = false, started = false, retried = false, keepAlive = null, watchdog = null;
-    const end = () => {
-      if (finished) return;
-      finished = true; clearInterval(keepAlive); clearTimeout(watchdog); clearTimeout(maxT);
-      done();
-    };
-    const say = () => {
-      const u = new SpeechSynthesisUtterance(clean);
-      utter = u;
-      if (voice) u.voice = voice;
-      u.lang = voice ? voice.lang : "en-IN";
-      u.rate = 0.98; u.pitch = 1.0;
-      u.onstart = () => {
-        started = true; clearTimeout(watchdog);
-        clearInterval(keepAlive);
-        keepAlive = setInterval(() => {
-          if (token !== speakToken || !synth.speaking) return clearInterval(keepAlive);
-          synth.pause(); synth.resume();
-        }, 10000);
-      };
-      u.onend = () => { if (utter === u) end(); };
-      u.onerror = (e) => { if (utter === u && e.error !== "interrupted" && e.error !== "canceled") end(); };
-      if (synth.speaking || synth.pending || synth.paused) synth.cancel();
-      synth.resume();
-      synth.speak(u);
-      // Never started? Reset the engine and try once more.
-      watchdog = setTimeout(() => {
-        if (started || finished || token !== speakToken) return;
-        if (!retried) { retried = true; synth.cancel(); setTimeout(say, 120); } else end();
-      }, 2500);
-    };
-    const maxT = setTimeout(end, 4000 + clean.length * 95); // Safari sometimes never fires onend
-    say();
-  });
-  const chunkText = (t) => {
-    const sentences = (t.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) || [t]).map((x) => x.trim()).filter(Boolean);
-    const out = []; let cur = "";
-    for (const x of sentences) {
-      if (cur && (cur + " " + x).length > 150) { out.push(cur); cur = x; } else cur = (cur + " " + x).trim();
-    }
-    if (cur) out.push(cur);
-    return out;
-  };
-  // When the free natural-voice quota runs out, stop asking for it for a while so answers
-  // go straight to the browser voice instead of waiting on requests that will fail.
+  // After a failure, don't ask again for a while: answers go straight to text instead of waiting.
   const VOICE_PAUSE_MS = 15 * 60 * 1000;
   let voiceDownUntil = 0;
   try { voiceDownUntil = Number(sessionStorage.getItem("owl-voice-down")) || 0; } catch {}
@@ -286,44 +219,59 @@
     voiceDownUntil = Date.now() + VOICE_PAUSE_MS;
     try { sessionStorage.setItem("owl-voice-down", String(voiceDownUntil)); } catch {}
   };
+  // One request per reply (not per sentence) so the small free quota lasts longer.
+  // The worker caches each line at the edge, so repeated lines cost nothing.
   const fetchVoice = (text) => {
     const url = typeof AI_URL === "string" && AI_URL ? AI_URL.replace(/\/chat$/, "/speak") : "";
     if (!url || Date.now() < voiceDownUntil) return Promise.resolve(null);
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 10000);
+    const t = setTimeout(() => ctrl.abort(), 15000);
     return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal: ctrl.signal })
-      .then((r) => { if (r.ok) return r.blob(); if (r.status === 502 || r.status === 429) markVoiceDown(); return null; })
-      .catch(() => { markVoiceDown(); return null; })
+      .then(async (r) => {
+        if (r.ok) return r.blob();
+        // pause the voice only when the daily quota is really used up, not on a one-off hiccup
+        const err = await r.json().catch(() => ({}));
+        if (err.error === "quota") markVoiceDown();
+        return null;
+      })
+      .catch(() => null)
       .finally(() => clearTimeout(t));
   };
-  const naturalSpeak = async (clean, token) => {
-    if (Date.now() < voiceDownUntil) return false;
-    const parts = chunkText(clean);
-    const jobs = parts.map(fetchVoice); // fetch all sentences at once, play them in order
-    for (let i = 0; i < parts.length; i++) {
-      const blob = await jobs[i];
-      if (token !== speakToken) return true;
-      if (!blob) {
-        if (i === 0) return false;
-        await browserSpeak(parts.slice(i).join(" "), token);
-        return true;
-      }
-      const src = URL.createObjectURL(blob);
-      const ok = await playUrl(src, token);
-      URL.revokeObjectURL(src);
-      if (!ok && i === 0) return false;
-    }
-    return true;
+  const readingPause = (clean, token) => new Promise((done) => {
+    // voice unavailable: give the visitor time to read before the mic opens again
+    if (token !== speakToken || !active) return done();
+    setTimeout(done, Math.min(9000, 1500 + clean.length * 45));
+  });
+  // Said once per visit (in the same Gemini voice, from a saved recording) when the free
+  // voice quota is used up, then Uli keeps answering in text.
+  const SORRY = "Sorry for the inconvenience! My voice runs on a free tier, and I've used up today's limit, so I can't speak out loud right now. But I can still answer everything. Just read my replies on the screen.";
+  const SORRY_CLIP = "voice/quota-sorry.m4a";
+  let apologized = false;
+  try { apologized = sessionStorage.getItem("owl-sorry") === "1"; } catch {}
+  const apologize = async (token, text) => {
+    apologized = true;
+    try { sessionStorage.setItem("owl-sorry", "1"); } catch {}
+    show(SORRY);
+    const played = await playUrl(SORRY_CLIP, token);
+    if (!played && token === speakToken) await new Promise((r) => setTimeout(r, 5000));
+    if (token === speakToken) { show(text); setState("idle"); }
   };
-  const speak = async (text, recorded = true) => {
+  const speak = async (text) => {
     const clean = spoken(text);
     const token = ++speakToken;
     if (audio) { audio.pause(); audio = null; }
-    if (recorded && await playUrl(`voice/${clipId(clean)}.m4a`, token)) return;
+    const blob = await fetchVoice(clean);
     if (token !== speakToken) return;
-    if (await naturalSpeak(clean, token)) return;
+    if (blob) {
+      const src = URL.createObjectURL(blob);
+      const ok = await playUrl(src, token);
+      URL.revokeObjectURL(src);
+      if (ok) return;
+    }
     if (token !== speakToken) return;
-    await browserSpeak(clean, token);
+    if (!apologized && Date.now() < voiceDownUntil) await apologize(token, text); // only when the quota is really used up
+    if (token !== speakToken) return;
+    await readingPause(clean, token);
   };
 
   /* voice in */
@@ -384,7 +332,7 @@
     if (history.length > 16) history.splice(0, history.length - 16);
     show(text);
     if (act === "copy") { try { await navigator.clipboard.writeText(EMAIL); } catch {} }
-    await speak(text, !fromAI);
+    await speak(text);
     return act;
   };
 
