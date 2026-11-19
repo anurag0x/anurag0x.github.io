@@ -6,6 +6,7 @@ HEADLINE: Tech all-rounder and software engineer. Backend, frontend, mobile, AI/
 EXPERIENCE: 3+ years professionally.
 LOCATION: Lives in Gurugram, Haryana. Hometown: Amjhera, Dhar district, Madhya Pradesh.
 EDUCATION: B.Sc. in Computer Science, Devi Ahilya Vishwavidyalaya (DAVV), Indore. Full-time Full Stack Web Development program at Masai School, Bengaluru.
+RESUME: His latest resume (PDF) can be downloaded with the "download resume" button on this site (hero, top menu and contact section).
 CONTACT: Email anuragkushwah134@gmail.com. GitHub github.com/anurag0x. LinkedIn linkedin.com/in/anuraagkushwah. Twitter @anuraag0x. Portfolio anurag0x.github.io. (Do not share a phone number.)
 
 CAREER (most recent first; do not mention dates):

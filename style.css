@@ -208,7 +208,7 @@ button { font: inherit; color: inherit; background: none; border: 0; }
 
 /* contact */
 .contact { text-align: left; }
-.contact-row { margin: 48px 0 32px; }
+.contact-row { margin: 48px 0 32px; display: flex; flex-wrap: wrap; gap: 14px; }
 .big-btn { font-size: clamp(14px, 2.2vw, 22px); padding: 20px 30px; flex-wrap: wrap; }
 .copy-hint { font-size: 11px; opacity: .6; font-weight: 400; }
 .socials { display: flex; flex-wrap: wrap; gap: 28px; font-family: var(--mono); }
@@ -565,3 +565,7 @@ body.lock-cursor input, body.lock-cursor textarea { cursor: text; }
 .play-grid.games .play-card.main .play-emoji { grid-row: span 3; align-self: start; margin: 4px 0 0; }
 .play-grid.games .play-card.main h3, .play-grid.games .play-card.main p, .play-grid.games .play-card.main .play-chips { grid-column: 2; }
 .play-card.more h3 { font-size: 18px; line-height: 1.2; }
+
+/* resume download */
+.nav-links .nav-resume { color: var(--acid); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+.nav-links .nav-resume:hover { border-color: var(--acid); }

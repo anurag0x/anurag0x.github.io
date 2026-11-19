@@ -48,7 +48,7 @@
     { id: "links", keys: ["github", "linkedin", "twitter", "social", "socials", "profile"],
       a: ["GitHub: github.com/anurag0x. LinkedIn: linkedin.com/in/anuraagkushwah. Twitter: @anuraag0x."] },
     { id: "resume", keys: ["resume", "cv", "pdf", "download"],
-      a: [`Want his latest resume? Email him at ${EMAIL} and he'll send it over. Meanwhile, I can tell you anything that's on it — try asking about his experience or skills.`] },
+      a: ["Here you go! I've started downloading his latest resume. You can also grab it any time with the download resume button. Want me to walk you through his experience?"], act: "resume" },
     { id: "thanks", keys: ["thanks", "thank you", "thx", "cool", "nice", "great", "awesome", "ok", "okay"],
       a: ["Hoo-ray! Anything else you'd like to know?", "My pleasure! 🦉 Ask away if you're curious about anything else."] },
     { id: "bye", keys: ["bye", "goodbye", "see you", "later", "exit", "close"],
@@ -302,7 +302,7 @@
     ? "http://127.0.0.1:8787/chat"
     : "https://gyani.anuragkushwah134.workers.dev/chat";
   const history = []; // [{role: "user"|"model", text}]
-  const LOCAL_FIRST = new Set(["greet", "bye", "thanks", "owl", "joke"]); // instant, recorded-voice replies
+  const LOCAL_FIRST = new Set(["greet", "bye", "thanks", "owl", "joke", "resume"]); // instant, recorded-voice replies
   const askAI = async (q) => {
     if (!AI_URL) return null;
     const ctrl = new AbortController();
@@ -332,6 +332,7 @@
     if (history.length > 16) history.splice(0, history.length - 16);
     show(text);
     if (act === "copy") { try { await navigator.clipboard.writeText(EMAIL); } catch {} }
+    if (act === "resume" && window.downloadResume) window.downloadResume();
     await speak(text);
     return act;
   };

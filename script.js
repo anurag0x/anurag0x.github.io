@@ -385,6 +385,12 @@
     print(`<span class="acc">anurag-os v3.0</span> — booted in 0.42s · uptime: 3+ years`);
     print(`type <span class="acc">help</span> to see what this thing can do.\n`);
   };
+  const downloadResume = () => {
+    const a = document.createElement("a");
+    a.href = "Resume/Anurag-Kushwah-Resume.pdf"; a.download = "Anurag-Kushwah-Resume.pdf";
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  window.downloadResume = downloadResume;
   const go = (hash) => { close(); setTimeout(() => $(hash).scrollIntoView({ behavior: reduced ? "auto" : "smooth" }), 50); };
   const CMDS = {
     help: () => `<span class="acc">available commands</span>
@@ -393,6 +399,7 @@
   projects      things I've shipped
   skills        the stack
   contact       get in touch
+  resume        download my resume (PDF)
   owl [question] ask Uli, the wise owl
   github | linkedin | twitter
   ls, cat, date, echo, history, clear, exit
@@ -423,6 +430,8 @@ front     React Next.js Redux Tailwind Flutter`,
     chaos: () => (toggleChaos(), chaos ? "⚠️  chaos mode ON. type 'chaos' again to restore order." : "order restored."),
     matrix: () => (matrix(), "wake up, Neo…"),
     "rm": (a) => a.join(" ").includes("-rf") ? "🔥 nice try. prod is protected (I learned that the hard way)." : "rm: missing operand",
+    resume: () => { downloadResume(); return "downloading Anurag-Kushwah-Resume.pdf ⤓"; },
+    cv: () => CMDS.resume(),
     owl: (a) => { close(); if (a.length && window.askOwl) window.askOwl(a.join(" ")); else if (window.openOwl) window.openOwl(); return ""; },
     exit: () => (close(), ""),
   };
@@ -459,6 +468,7 @@ front     React Next.js Redux Tailwind Flutter`,
     { label: "Go to Stack orbit", hint: "section", run: () => go("#stack") },
     { label: "Go to Beyond code (who I am, sports & games)", hint: "section", run: () => go("#play") },
     { label: "Go to Contact", hint: "section", run: () => go("#contact") },
+    { label: "Download resume (PDF)", hint: "file", run: () => { close(); downloadResume(); } },
     { label: "Copy email address", hint: "action", run: async () => { close(); toast((await copy(EMAIL)) ? "email copied 👋" : EMAIL); } },
     { label: "Open GitHub", hint: "link", run: () => { close(); open_(LINKS.github); } },
     { label: "Open LinkedIn", hint: "link", run: () => { close(); open_(LINKS.linkedin); } },
