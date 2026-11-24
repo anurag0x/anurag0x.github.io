@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { ORBITS, STACK_GROUPS } from "@/data/stack";
 
 export function Stack() {
@@ -24,12 +24,12 @@ export function Stack() {
           <div className="core">Node.js</div>
           {ORBITS.map((o) => [
             <div key={`ring-${o.r}`} className="ring" style={{ width: `${o.r * 200}%`, height: `${o.r * 200}%` }} />,
-            <div key={`spin-${o.r}`} className="ring-spin" style={{ animationDuration: `${o.dur}s` }}>
+            <div key={`spin-${o.r}`} className="ring-spin" style={{ "--dur": `${o.dur}s` } as CSSProperties}>
               {o.items.map((name, i) => {
                 const a = (360 / o.items.length) * i;
                 return (
                   <div key={name} className="planet" style={{ transform: `rotate(${a}deg) translateX(calc(var(--orb) * ${o.r})) rotate(${-a}deg)` }}>
-                    <span style={{ animationDuration: `${o.dur}s` }}>{name}</span>
+                    <span>{name}</span>
                   </div>
                 );
               })}

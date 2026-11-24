@@ -69,13 +69,17 @@ export function Hero() {
     let W = 0, H = 0, nodes: Node[] = [], packets: Packet[] = [], ripples: Ripple[] = [];
     const mouse = { x: -9999, y: -9999 };
     let chaos = false, heroVisible = true, drawing = false, alive = true;
+    // Reduce Motion (iPhone Low Power Mode turns it on too): the network still drifts, just slowly.
+    const speed = reduced ? 0.35 : 1;
 
+    // resizing a canvas wipes it; make sure a frame is drawn again afterwards
+    function startDrawSoon() { requestAnimationFrame(() => { if (!drawing) { drawing = true; draw(); } }); }
     const resize = () => {
       const dpr = Math.min(devicePixelRatio || 1, 2), sameWidth = cv.clientWidth === W && nodes.length > 0;
       W = cv.clientWidth; H = cv.clientHeight;
       cv.width = W * dpr; cv.height = H * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (sameWidth) return; // phone address bar showing/hiding: keep the dots where they are
+      if (sameWidth) { if (!drawing) startDrawSoon(); return; } // phone address bar showing/hiding: keep the dots where they are
       // Count scales with area, so phones used to get only ~20 faint dots: give small screens
       // a denser field and slightly bigger dots so the network is actually visible.
       const small = W <= 600;
@@ -90,7 +94,7 @@ export function Hero() {
     hero.addEventListener("touchmove", touch, { ...opt, passive: true });
     hero.addEventListener("touchend", () => { mouse.x = mouse.y = -9999; }, opt);
     hero.addEventListener("click", (e) => {
-      if ((e.target as Element).closest("a,button")) return;
+      if (reduced || (e.target as Element).closest("a,button")) return;
       const r = cv.getBoundingClientRect();
       ripples.push({ x: e.clientX - r.left, y: e.clientY - r.top, t: 0 });
     }, opt);
@@ -107,8 +111,12 @@ export function Hero() {
           if (Math.abs(rd - rp.t * 9) < 30 && rd > 0) { p.vx += (rx / rd) * 1.2; p.vy += (ry / rd) * 1.2; }
         }
         p.vx *= 0.985; p.vy *= 0.985;
+        // cap the speed so a tap's ripple nudges the dots instead of flinging them all off-screen
+        const v = Math.hypot(p.vx, p.vy), maxV = W <= 600 ? 2.2 : 4;
+        if (v > maxV) { p.vx *= maxV / v; p.vy *= maxV / v; }
         if (Math.hypot(p.vx, p.vy) < 0.15) { p.vx += (Math.random() - 0.5) * 0.05; p.vy += (Math.random() - 0.5) * 0.05; }
-        p.x += p.vx * (chaos ? 4 : 1); p.y += p.vy * (chaos ? 4 : 1);
+        const k = (chaos ? 4 : 1) * speed;
+        p.x += p.vx * k; p.y += p.vy * k;
         if (p.x < 0 || p.x > W) p.vx *= -1;
         if (p.y < 0 || p.y > H) p.vy *= -1;
         p.x = Math.max(0, Math.min(W, p.x)); p.y = Math.max(0, Math.min(H, p.y));
@@ -121,7 +129,7 @@ export function Hero() {
           if (d < LINK) {
             ctx.strokeStyle = `rgba(139,108,255,${(1 - d / LINK) * 0.35})`;
             ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-            if (packets.length < 40 && Math.random() < 0.0009) packets.push({ a, b, t: 0 });
+            if (!reduced && packets.length < 40 && Math.random() < 0.0009) packets.push({ a, b, t: 0 });
           }
         }
         const md = Math.hypot(a.x - mouse.x, a.y - mouse.y);
@@ -145,15 +153,14 @@ export function Hero() {
         ctx.beginPath(); ctx.arc(rp.x, rp.y, rp.t * 9, 0, 6.283); ctx.stroke();
         return rp.t < 60;
       });
-      if (heroVisible && !reduced) requestAnimationFrame(draw); else drawing = false;
+      if (heroVisible) requestAnimationFrame(draw); else drawing = false;
     };
-    const startDraw = () => { if (!drawing && !reduced) { drawing = true; requestAnimationFrame(draw); } };
+    const startDraw = () => { if (!drawing) { drawing = true; requestAnimationFrame(draw); } };
 
     resize();
     addEventListener("resize", resize, opt);
     const io = new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; if (heroVisible) startDraw(); });
     io.observe(hero);
-    if (reduced) draw();
     const offChaos = on("chaos", (isOn) => {
       chaos = isOn;
       if (isOn) nodes.forEach((n) => { n.vx *= 6; n.vy *= 6; });

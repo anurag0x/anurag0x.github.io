@@ -292,22 +292,23 @@ export function startUli(root: HTMLElement): () => void {
   const homeX = () => innerWidth - SIZE() - 18;
   const home = (instant = false) => moveTo(homeX(), innerHeight - SIZE() - 18, instant);
   home(true);
-  addEventListener("resize", () => (active ? home(true) : moveTo(pos.x, pos.y, true)), { signal });
+  addEventListener("resize", () => (active || innerWidth <= 600 ? home(true) : moveTo(pos.x, pos.y, true)), { signal });
 
   let hovering = false;
   btn.addEventListener("pointerenter", () => { hovering = true; }, { signal });
   btn.addEventListener("pointerleave", () => { hovering = false; }, { signal });
   const wander = () => {
     const busy = active || hovering || !bubble.hidden || document.hidden;
-    if (!busy && !reduced) {
+    // phones: Uli stays perched in her corner (only the callouts pop up); tablets and desktops: she wanders
+    if (innerWidth <= 600) {
+      if (!busy) { home(); if (Math.random() < 0.5) callout(); }
+    } else if (!busy && !reduced) {
       const s = SIZE(), margin = 24, r = Math.random();
       let x: number, y: number;
       // mostly hug the edges, sometimes perch somewhere in the middle
       if (r < 0.35) { x = Math.random() < 0.5 ? margin : innerWidth - s - margin; y = 90 + Math.random() * (innerHeight - s - 120); }
       else if (r < 0.75) { x = margin + Math.random() * (innerWidth - s - margin * 2); y = innerHeight - s - 18; }
       else { x = margin + Math.random() * (innerWidth - s - margin * 2); y = 90 + Math.random() * (innerHeight - s - 120); }
-      // on phones keep to the lower part of the screen so it never covers what you are reading
-      if (innerWidth <= 600) y = innerHeight - s - 18 - Math.random() * Math.min(160, innerHeight * 0.2);
       moveTo(x, y);
     }
     later(wander, 7000 + Math.random() * 6000);

@@ -186,18 +186,17 @@ button { font: inherit; color: inherit; background: none; border: 0; }
   box-shadow: 0 0 80px rgba(198,255,61,.45);
 }
 .ring { position: absolute; inset: 50% auto auto 50%; border: 1px dashed #2c2c38; border-radius: 50%; transform: translate(-50%, -50%); }
-.ring-spin { position: absolute; inset: 0; animation: spin linear infinite; }
+.ring-spin { position: absolute; inset: 0; animation: spin var(--dur, 60s) linear infinite; } /* --dur is set per ring in Stack.tsx */
 /* pause on hover only with a real mouse: on phones a tap counts as a hover that never ends, freezing the orbit */
 @media (hover: hover) and (pointer: fine) { .orbit:hover .ring-spin, .orbit:hover .planet span { animation-play-state: paused; } }
 .planet { position: absolute; top: 50%; left: 50%; }
 .planet span {
   display: block; transform: translate(-50%, -50%); white-space: nowrap; font-family: var(--mono); font-size: 12px;
-  padding: 6px 11px; border-radius: 99px; background: var(--bg-2); border: 1px solid var(--line); animation: spin linear infinite reverse;
+  padding: 6px 11px; border-radius: 99px; background: var(--bg-2); border: 1px solid var(--line); animation: counter var(--dur, 60s) linear infinite;
   transition: border-color .2s, color .2s;
 }
 .planet span:hover { border-color: var(--acid); color: var(--acid); }
 @keyframes spin { to { transform: rotate(360deg); } }
-.planet span { animation-name: counter; }
 @keyframes counter { from { transform: translate(-50%,-50%) rotate(0); } to { transform: translate(-50%,-50%) rotate(-360deg); } }
 
 /* contact */
@@ -255,6 +254,9 @@ body.chaos .card, body.chaos .stat { animation: wobble .6s ease-in-out infinite 
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* Reduce Motion (also switched on by iPhone Low Power Mode): keep the orbit turning, just 3x slower */
+  .ring-spin { animation: spin calc(var(--dur, 60s) * 3) linear infinite !important; }
+  .planet span { animation: counter calc(var(--dur, 60s) * 3) linear infinite !important; }
   .reveal { opacity: 1; transform: none; }
   .trace .span-bar { transform: none; }
   html { scroll-behavior: auto; }
