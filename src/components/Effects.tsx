@@ -5,12 +5,11 @@
 import { useEffect } from "react";
 import { EMAIL } from "@/data/site";
 import { emit, on } from "@/lib/bus";
-import { hasFinePointer, prefersReducedMotion } from "@/lib/browser";
+import { hasFinePointer } from "@/lib/browser";
 import { confetti, matrix } from "@/lib/fx";
 
-function countUp(el: HTMLElement, reduced: boolean) {
+function countUp(el: HTMLElement) {
   const target = Number(el.dataset.count), suf = el.dataset.suffix || "";
-  if (reduced) { el.textContent = target + suf; return; }
   const t0 = performance.now();
   const f = (t: number) => {
     const k = Math.min(1, (t - t0) / 1400), e = 1 - Math.pow(1 - k, 4);
@@ -76,7 +75,7 @@ function lockCursor(signal: AbortSignal) {
 
 export function Effects() {
   useEffect(() => {
-    const reduced = prefersReducedMotion(), fine = hasFinePointer();
+    const fine = hasFinePointer();
     const ac = new AbortController(), { signal } = ac;
 
     // reveal on scroll (+ count-up stats). data-in, not a class, so React re-renders never wipe it.
@@ -84,13 +83,13 @@ export function Effects() {
       for (const e of entries) {
         if (!e.isIntersecting) continue;
         e.target.setAttribute("data-in", "");
-        e.target.querySelectorAll<HTMLElement>("[data-count]").forEach((el) => countUp(el, reduced));
+        e.target.querySelectorAll<HTMLElement>("[data-count]").forEach((el) => countUp(el));
         io.unobserve(e.target);
       }
     }, { threshold: 0.15 });
     document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
 
-    if (fine && !reduced) {
+    if (fine) {
       document.querySelectorAll<HTMLElement>(".magnetic").forEach((el) => {
         el.addEventListener("mousemove", (e) => {
           const r = el.getBoundingClientRect();

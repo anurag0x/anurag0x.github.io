@@ -252,15 +252,6 @@ body.chaos .card, body.chaos .stat { animation: wobble .6s ease-in-out infinite 
   .status .when { display: none; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
-  /* Reduce Motion (also switched on by iPhone Low Power Mode): keep the orbit turning, just 3x slower */
-  .ring-spin { animation: spin calc(var(--dur, 60s) * 3) linear infinite !important; }
-  .planet span { animation: counter calc(var(--dur, 60s) * 3) linear infinite !important; }
-  .reveal { opacity: 1; transform: none; }
-  .trace .span-bar { transform: none; }
-  html { scroll-behavior: auto; }
-}
 
 /* ===== target-lock cursor ===== */
 body.lock-cursor, body.lock-cursor a, body.lock-cursor button, body.lock-cursor .card, body.lock-cursor .span-row { cursor: none; }

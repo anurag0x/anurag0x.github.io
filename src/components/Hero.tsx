@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { RESUME_URL } from "@/data/site";
 import { on } from "@/lib/bus";
-import { prefersReducedMotion } from "@/lib/browser";
 
 const WORDS = ["backends", "frontends", "mobile apps", "AI pipelines", "real-time apps", "anything"];
 const GLYPHS = "!<>-_\\/[]{}—=+*^?#01";
@@ -31,7 +30,6 @@ export function Hero() {
 
   // word scramble
   useEffect(() => {
-    if (prefersReducedMotion()) return;
     const el = scrambleRef.current!;
     let wi = 0, alive = true, timer: ReturnType<typeof setTimeout>;
     const scramble = (to: string) => new Promise<void>((done) => {
@@ -64,13 +62,10 @@ export function Hero() {
   // living network
   useEffect(() => {
     const hero = heroRef.current!, cv = canvasRef.current!, ctx = cv.getContext("2d")!;
-    const reduced = prefersReducedMotion();
     const ac = new AbortController(), opt = { signal: ac.signal };
     let W = 0, H = 0, nodes: Node[] = [], packets: Packet[] = [], ripples: Ripple[] = [];
     const mouse = { x: -9999, y: -9999 };
     let chaos = false, heroVisible = true, drawing = false, alive = true;
-    // Reduce Motion (iPhone Low Power Mode turns it on too): the network still drifts, just slowly.
-    const speed = reduced ? 0.35 : 1;
 
     // resizing a canvas wipes it; make sure a frame is drawn again afterwards
     function startDrawSoon() { requestAnimationFrame(() => { if (!drawing) { drawing = true; draw(); } }); }
@@ -94,7 +89,7 @@ export function Hero() {
     hero.addEventListener("touchmove", touch, { ...opt, passive: true });
     hero.addEventListener("touchend", () => { mouse.x = mouse.y = -9999; }, opt);
     hero.addEventListener("click", (e) => {
-      if (reduced || (e.target as Element).closest("a,button")) return;
+      if ((e.target as Element).closest("a,button")) return;
       const r = cv.getBoundingClientRect();
       ripples.push({ x: e.clientX - r.left, y: e.clientY - r.top, t: 0 });
     }, opt);
@@ -115,7 +110,7 @@ export function Hero() {
         const v = Math.hypot(p.vx, p.vy), maxV = W <= 600 ? 2.2 : 4;
         if (v > maxV) { p.vx *= maxV / v; p.vy *= maxV / v; }
         if (Math.hypot(p.vx, p.vy) < 0.15) { p.vx += (Math.random() - 0.5) * 0.05; p.vy += (Math.random() - 0.5) * 0.05; }
-        const k = (chaos ? 4 : 1) * speed;
+        const k = chaos ? 4 : 1;
         p.x += p.vx * k; p.y += p.vy * k;
         if (p.x < 0 || p.x > W) p.vx *= -1;
         if (p.y < 0 || p.y > H) p.vy *= -1;
@@ -129,7 +124,7 @@ export function Hero() {
           if (d < LINK) {
             ctx.strokeStyle = `rgba(139,108,255,${(1 - d / LINK) * 0.35})`;
             ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-            if (!reduced && packets.length < 40 && Math.random() < 0.0009) packets.push({ a, b, t: 0 });
+            if (packets.length < 40 && Math.random() < 0.0009) packets.push({ a, b, t: 0 });
           }
         }
         const md = Math.hypot(a.x - mouse.x, a.y - mouse.y);

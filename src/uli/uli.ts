@@ -2,7 +2,7 @@
 // eyes that follow the pointer, wandering around the page and the little callouts.
 // startUli() wires everything to the markup rendered by <Uli/> and returns a cleanup function.
 import { EMAIL } from "@/data/site";
-import { downloadResume, prefersReducedMotion } from "@/lib/browser";
+import { downloadResume } from "@/lib/browser";
 import { on } from "@/lib/bus";
 import { answer, LINES, type Act } from "./knowledge";
 import { getRecognizer, type Recognizer } from "./speech";
@@ -28,7 +28,6 @@ const session = {
 };
 
 export function startUli(root: HTMLElement): () => void {
-  const reduced = prefersReducedMotion();
   const ac = new AbortController(), { signal } = ac;
   let disposed = false;
   const timers = new Set<ReturnType<typeof setTimeout>>();
@@ -302,7 +301,7 @@ export function startUli(root: HTMLElement): () => void {
     // phones: Uli stays perched in her corner (only the callouts pop up); tablets and desktops: she wanders
     if (innerWidth <= 600) {
       if (!busy) { home(); if (Math.random() < 0.5) callout(); }
-    } else if (!busy && !reduced) {
+    } else if (!busy) {
       const s = SIZE(), margin = 24, r = Math.random();
       let x: number, y: number;
       // mostly hug the edges, sometimes perch somewhere in the middle

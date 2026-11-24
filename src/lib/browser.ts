@@ -1,8 +1,5 @@
 import { EMAIL, RESUME_FILE, RESUME_URL, type SectionId, SECTIONS } from "@/data/site";
 
-export const prefersReducedMotion = (): boolean =>
-  typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 export const hasFinePointer = (): boolean =>
   typeof window !== "undefined" && matchMedia("(pointer: fine)").matches;
 
@@ -26,7 +23,7 @@ export function downloadResume(): void {
 export const openTab = (url: string) => window.open(url, "_blank", "noopener");
 
 export function scrollToSection(id: SectionId): void {
-  setTimeout(() => document.querySelector(SECTIONS[id])?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" }), 50);
+  setTimeout(() => document.querySelector(SECTIONS[id])?.scrollIntoView({ behavior: "smooth" }), 50);
 }
 
 const isPhone = (): boolean =>

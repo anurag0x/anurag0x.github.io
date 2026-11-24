@@ -3,9 +3,9 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { FILTERS, PROJECTS, type ProjectFilter } from "@/data/projects";
 import { on } from "@/lib/bus";
-import { hasFinePointer, prefersReducedMotion } from "@/lib/browser";
+import { hasFinePointer } from "@/lib/browser";
 
-const tiltOn = () => hasFinePointer() && !prefersReducedMotion();
+const tiltOn = () => hasFinePointer();
 
 function tilt(e: MouseEvent<HTMLElement>) {
   if (!tiltOn()) return;

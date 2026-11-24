@@ -1,5 +1,4 @@
 // Full-screen canvas effects: confetti ("sudo hire-me", chaos mode) and the matrix rain.
-import { prefersReducedMotion } from "./browser";
 
 function overlayCanvas(): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement("canvas");
@@ -11,7 +10,6 @@ function overlayCanvas(): [HTMLCanvasElement, CanvasRenderingContext2D] {
 }
 
 export function confetti(): void {
-  if (prefersReducedMotion()) return;
   const [c, g] = overlayCanvas();
   const cols = ["#c6ff3d", "#8b6cff", "#ff4fa3", "#38bdf8", "#f2f0ea"];
   const bits = Array.from({ length: 160 }, () => ({
@@ -33,7 +31,6 @@ export function confetti(): void {
 }
 
 export function matrix(): void {
-  if (prefersReducedMotion()) return;
   const [c, g] = overlayCanvas();
   c.style.background = "rgba(0,0,0,.85)";
   const fs = 16;
