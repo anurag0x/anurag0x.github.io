@@ -1,0 +1,24 @@
+/* Tailwind (theme + utilities; no preflight reset, the design system below brings its own),
+   then the hand-written design system in its own layer so utilities can override it. */
+@layer theme, legacy, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "./legacy.css" layer(legacy);
+
+@theme {
+  --color-ink: #07070a;
+  --color-ink-2: #0e0e14;
+  --color-line: #22222c;
+  --color-paper: #f2f0ea;
+  --color-muted: #8b8a93;
+  --color-acid: #c6ff3d;
+  --color-violet: #8b6cff;
+  --color-pink: #ff4fa3;
+  --font-sans: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --breakpoint-tab: 601px;
+  --breakpoint-desk: 1025px;
+  --animate-marquee: marquee 32s linear infinite;
+  @keyframes marquee { to { transform: translateX(-50%); } }
+}
