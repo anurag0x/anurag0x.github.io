@@ -108,12 +108,12 @@ export function pcmToWav(pcm, rate = 24000) {
   return out;
 }
 
-export async function synthesize(env, text, fetchImpl = fetch) {
+export async function synthesize(env, text, fetchImpl = fetch, tries = 2) {
   const models = [...new Set([env.TTS_MODEL, "gemini-2.5-flash-preview-tts", "gemini-2.5-flash-tts"].filter(Boolean))];
   let lastErr;
   for (const model of models) {
     // The preview voice model sometimes replies with no audio (finishReason "OTHER"): try it once more.
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    for (let attempt = 1; attempt <= tries; attempt++) {
       const res = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
@@ -127,15 +127,16 @@ export async function synthesize(env, text, fetchImpl = fetch) {
       });
       if (res.status === 404) { lastErr = Object.assign(new Error("no model"), { status: 404 }); break; }
       if (!res.ok) {
-        console.error("tts upstream", model, res.status, (await res.text()).slice(0, 400));
-        throw Object.assign(new Error(`tts ${res.status}`), { status: res.status });
+        const body = await res.text();
+        console.error("tts upstream", model, res.status, body.slice(0, 400));
+        throw Object.assign(new Error(`tts ${res.status}`), { status: res.status, body });
       }
       const data = await res.json();
       const part = (data.candidates?.[0]?.content?.parts || []).find((p) => p.inlineData?.data);
       if (!part) {
         console.error("tts no audio", model, attempt, JSON.stringify(data).slice(0, 300));
         lastErr = new Error("no audio");
-        if (attempt === 2) throw lastErr;
+        if (attempt === tries) throw lastErr;
         continue;
       }
       const rate = Number((part.inlineData.mimeType || "").match(/rate=(\d+)/)?.[1]) || 24000;
@@ -147,6 +148,10 @@ export async function synthesize(env, text, fetchImpl = fetch) {
   }
   throw lastErr || new Error("tts unavailable");
 }
+
+// 429 from Gemini is either the per-minute limit (try again shortly) or the daily one (done for today).
+export const voiceError = (e) =>
+  e?.status === 429 ? (/PerMinute/i.test(e.body || "") ? "busy" : "quota") : "upstream";
 
 /* Streaming: Gemini sends the voice in pieces (server-sent events) as it is generated, so Uli
    can start talking about a second in instead of waiting for the whole clip. Same model, same
@@ -180,7 +185,8 @@ const audioOf = (ev) => (ev?.candidates?.[0]?.content?.parts || []).filter((p) =
 // Resolves once the first piece of audio has arrived (retrying once if Gemini sends none).
 export async function openVoiceStream(env, text, fetchImpl = fetch) {
   const model = env.TTS_MODEL || "gemini-2.5-flash-preview-tts";
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  {
+    const t0 = Date.now();
     const res = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
@@ -193,8 +199,9 @@ export async function openVoiceStream(env, text, fetchImpl = fetch) {
       }),
     });
     if (!res.ok) {
-      console.error("tts stream upstream", model, res.status, (await res.text()).slice(0, 400));
-      throw Object.assign(new Error(`tts ${res.status}`), { status: res.status });
+      const body = await res.text();
+      console.error("tts stream upstream", model, res.status, body.slice(0, 400));
+      throw Object.assign(new Error(`tts ${res.status}`), { status: res.status, body });
     }
     const events = sseEvents(res.body);
     // read by hand: leaving a for-await loop early would close the stream we still need
@@ -202,10 +209,11 @@ export async function openVoiceStream(env, text, fetchImpl = fetch) {
       const parts = audioOf(r.value);
       if (!parts.length) continue;
       const rate = Number((parts[0].inlineData.mimeType || "").match(/rate=(\d+)/)?.[1]) || 24000;
+      console.log("tts stream first audio after", Date.now() - t0, "ms");
       return { rate, first: parts.map((p) => b64ToBytes(p.inlineData.data)), events };
     }
-    console.error("tts stream no audio", model, attempt);
-    if (attempt === 2) throw new Error("no audio");
+    console.error("tts stream no audio", model, "after", Date.now() - t0, "ms");
+    throw new Error("no audio");
   }
 }
 
@@ -214,14 +222,14 @@ async function speakStream(env, text, origin, ctx, cache, key) {
   try {
     opened = await openVoiceStream(env, text);
   } catch (e) {
-    if (e.status === 429) return json({ error: "quota" }, 502, origin);
-    // streaming didn't work this time: fall back to the one-shot voice rather than staying silent
+    if (e.status === 429) return json({ error: voiceError(e) }, 502, origin);
+    // streaming didn't work this time: one try of the one-shot voice (never more than 2 requests per reply)
     try {
-      const wav = await synthesize(env, text);
+      const wav = await synthesize(env, text, fetch, 1);
       if (cache) await cache.put(key, new Response(wav, { headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=2592000" } }));
       return new Response(wav, { headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=604800", ...cors(origin) } });
     } catch (e2) {
-      return json({ error: e2.status === 429 ? "quota" : "upstream" }, 502, origin);
+      return json({ error: voiceError(e2) }, 502, origin);
     }
   }
   const { rate, first, events } = opened;
@@ -270,7 +278,7 @@ async function speakHandler(body, env, origin, request, ctx) {
     if (cache) await cache.put(key, new Response(wav, { headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=2592000" } }));
     return new Response(wav, { headers });
   } catch (e) {
-    return json({ error: e.status === 429 ? "quota" : "upstream" }, 502, origin);
+    return json({ error: voiceError(e) }, 502, origin);
   }
 }
 
